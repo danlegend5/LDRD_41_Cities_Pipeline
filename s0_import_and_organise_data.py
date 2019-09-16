@@ -10,6 +10,8 @@ __author__ = 'Dan Bramich'
 # Imports
 import csv
 import numpy
+import os
+import shutil
 from astropy.table import Table
 from LDDA_MFD_Project1_Pipeline.config import config
 from LDDA_MFD_Project1_Pipeline.lib import general_functions
@@ -34,7 +36,6 @@ ld_locations_table = Table([[empty_str]*nld_locations,
                                     'ROAD_NAME', 'ROAD_CLASS', 'SPEED_LIMIT', 'NLANES', 'LINK_ID', 'CITY_NAME'))
 
 # Read in the loop detector locations data file
-print('')
 print('Reading in the loop detector locations data file: ' + config.original_detectors_file)
 with open(config.original_detectors_file, mode = 'r') as csv_file:
     csv_contents = csv.DictReader(csv_file)
@@ -117,5 +118,36 @@ with open(config.original_detectors_file, mode = 'r') as csv_file:
             ld_locations_table['CITY_NAME'][i] = row['citycode']
         i += 1
 
+# Determine the set of unique city names
+print('Determining the set of unique city names...')
+city_names_uniq = [city for city in set(ld_locations_table['CITY_NAME'])]
+city_names_uniq.sort()
+ncities = len(city_names_uniq)
+print('No. of unique city names: ' + str(ncities))
+
+# Create the output directory for the loop detector locations data tables
+print('Creating the output directory for the loop detector locations data tables...')
+output_dir_ld_locations = os.path.join(config.output_dir, 's0.Loop.Detector.Locations')
+if os.path.exists(output_dir_ld_locations): shutil.rmtree(output_dir_ld_locations)
+os.makedirs(output_dir_ld_locations)
+
+# For each city
+for city_name in city_names_uniq:
+
+    # Write out a loop detector locations data table for the current city
+    print('Writing out a loop detector locations data table for: ' + city_name)
+    curr_ld_locations_table = ld_locations_table[ld_locations_table['CITY_NAME'] == city_name]
+    curr_ld_locations_table.remove_columns(['ROAD_NAME', 'CITY_NAME'])
+    curr_ld_locations_table = curr_ld_locations_table[numpy.argsort(curr_ld_locations_table['LATITUDE'])]
+    curr_output_file = os.path.join(output_dir_ld_locations, 'detectors.' + city_name + '.fits')
+    curr_ld_locations_table.write(curr_output_file, format = 'fits')
+
 
 #### ABOVE FULLY READ AND TESTED
+
+
+#s0.Loop.Detector.Measurements
+#s0.Underlying.Network
+
+
+
