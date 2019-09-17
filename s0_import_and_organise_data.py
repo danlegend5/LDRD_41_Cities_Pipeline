@@ -43,8 +43,19 @@ with open(config.original_detectors_file, mode = 'r') as csv_file:
     csv_contents = csv.DictReader(csv_file)
     i = 0
     for row in csv_contents:
-        ld_locations_table['DETECTOR_ID'][i] = row['detid'].replace(' ', '_')        # Notes: - The ID of the loop detector.
+        tmp_str = row['detid'].replace(' ', '_')
+        tmp_str = tmp_str.replace('.', '_')
+        tmp_str = tmp_str.replace('/', '_')
+        tmp_str = tmp_str.replace('[', '_')
+        tmp_str = tmp_str.replace(']', '_')
+        tmp_str = tmp_str.replace('(', '_')
+        tmp_str = tmp_str.replace(')', '_')
+        if tmp_str[0] == '_': tmp_str = tmp_str[1:]
+        if tmp_str[-1] == '_': tmp_str = tmp_str[0:(len(tmp_str) - 1)]
+        ld_locations_table['DETECTOR_ID'][i] = tmp_str                               # Notes: - The ID of the loop detector.
                                                                                      #        - Spaces replaced with underscores.
+                                                                                     #        - Characters '.', '/', '[', ']', '(' and ')' replaced with underscores.
+                                                                                     #        - Underscores at the beginning and end of the ID string are removed.
         ld_locations_table['LONGITUDE'][i] = numpy.float64(row['coords.x1'])         # Notes: - Longitude (deg; EPSG:4326 or WGS84 - World Geodetic System 1984) of the loop detector.
                                                                                      #        - Longitudes are quoted in range -180.0 to 180.0 degrees.
                                                                                      #        - Minimum: -118.303722 deg
