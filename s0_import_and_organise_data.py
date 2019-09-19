@@ -56,6 +56,8 @@ with open(config.original_detectors_file, mode = 'r') as csv_file:
                                                                                      #        - Spaces replaced with underscores.
                                                                                      #        - Characters '.', '/', '[', ']', '(' and ')' replaced with underscores.
                                                                                      #        - Underscores at the beginning and end of the ID string are removed.
+                                                                                     #        - The only characters that are present in the loop detector ID entries are:
+                                                                                     #          '_', '-', '+', '0', ..., '9', 'a', ..., 'z', 'A', ..., 'Z'
         ld_locations_table['LONGITUDE'][i] = numpy.float64(row['coords.x1'])         # Notes: - Longitude (deg; EPSG:4326 or WGS84 - World Geodetic System 1984) of the loop detector.
                                                                                      #        - Longitudes are quoted in range -180.0 to 180.0 degrees.
                                                                                      #        - Minimum: -118.303722 deg
@@ -131,6 +133,11 @@ with open(config.original_detectors_file, mode = 'r') as csv_file:
             ld_locations_table['CITY_NAME'][i] = row['citycode']
         i += 1
 print('Read in ' + str(nld_locations) + ' rows...')
+
+# N.B: There is one duplicated entry for "CITY_NAME = toulouse" and "DETECTOR_ID = 262" in the loop detector
+# locations table. The remaining columns have different entries. Hence, when using loop detector measurements,
+# one must check that they can be associated with **exactly** one valid entry in a loop detector locations
+# table.
 
 # Determine the set of unique city names
 print('Determining the set of unique city names...')
