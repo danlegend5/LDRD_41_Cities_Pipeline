@@ -4,11 +4,14 @@ __author__ = 'Dan Bramich'
 
 # This script reads in the data on the loop detectors, the road links in which they are installed, and the
 # traffic measurements that they have made, and it splits these data into FITS binary table files by city
-# while also standardising the entries. The data come from the publication "Understanding traffic capacity
-# of urban networks" by Loder et al. (2019).
+# (and detector) while also standardising the entries. Note that no filtering of the data is performed
+# since the purpose of this script is simply to better organise and standardise the data before the data
+# processing and analysis begins. The data come from the publication "Understanding traffic capacity of
+# urban networks" by Loder et al. (2019).
 
 # Imports
 import csv
+import glob
 import numpy
 import os
 import shutil
@@ -181,6 +184,8 @@ with open(config.original_links_file, mode = 'r') as csv_file:
         i += 1
 print('Read in ' + str(nld_links) + ' rows...')
 
+# N.B: There are no duplicated entries for "CITY_NAME + LINK_ID + ORDER" in the loop detector links table.
+
 # Merge the loop detector links data table into the loop detector locations data table
 print('')
 print('Merging the loop detector links data table into the loop detector locations data table...')
@@ -225,9 +230,307 @@ for city_name in city_names_uniq:
     curr_output_file = os.path.join(output_dir_ld_locations, 'detectors.' + country_name + '.' + city_name + '.fits')
     curr_ld_locations_table.write(curr_output_file, format = 'fits')
 
+# Create the output directory for the loop detector measurements data tables (raw)
+output_dir_ld_measurements_raw = os.path.join(config.output_dir, 's0.Loop.Detector.Measurements.Raw')
+print('')
+print('Creating the output directory for the loop detector measurements data tables (raw): ' + output_dir_ld_measurements_raw)
+if os.path.exists(output_dir_ld_measurements_raw): shutil.rmtree(output_dir_ld_measurements_raw)
+os.makedirs(output_dir_ld_measurements_raw)
+
+# Read in the loop detector measurements data file (raw), and write out the entries to data files organised by
+# city and detector ID
+print('Reading in and splitting the loop detector measurements data file (raw): ' + config.original_measurements_raw_file)
+fieldnames = ['day', 'interval', 'flow', 'occ', 'error', 'speed']
+with open(config.original_measurements_raw_file, mode = 'r') as csv_file:
+    csv_contents = csv.DictReader(csv_file)
+    for row in csv_contents:
+        city_name = row['city']                                                      # Notes: - Name of the city that hosts the loop detector the measurement was taken with.
+                                                                                     #        - 41 cities with the same names as above.
+        country_name = general_functions.get_country_name(city_name)
+        detector_id = row['detid'].replace(' ', '_')                                 # Notes: - The ID of the loop detector the measurement was taken with.
+        detector_id = detector_id.replace('.', '_')                                  #        - Spaces replaced with underscores.
+        detector_id = detector_id.replace('/', '_')                                  #        - Characters '.', '/', '[', ']', '(' and ')' replaced with underscores.
+        detector_id = detector_id.replace('[', '_')                                  #        - Underscores at the beginning and end of the ID string are removed.
+        detector_id = detector_id.replace(']', '_')                                  #        - The only characters that are present in the loop detector ID entries are:
+        detector_id = detector_id.replace('(', '_')                                  #          '_', '-', '+', '0', ..., '9', 'a', ..., 'z', 'A', ..., 'Z'
+        detector_id = detector_id.replace(')', '_')
+        if detector_id[0] == '_': detector_id = detector_id[1:]
+        if detector_id[-1] == '_': detector_id = detector_id[0:(len(detector_id) - 1)]
+
+
+#### FOR SPEED ####
+#        if city_name != 'augsburg' or detector_id[0] != '0': break
+#### FOR SPEED ####
+
+
+        curr_output_dir = os.path.join(output_dir_ld_measurements_raw, country_name, city_name, detector_id)
+        curr_output_file = os.path.join(curr_output_dir, 'measurements.raw.' + country_name + '.' + city_name + '.' + detector_id + '.csv')
+        if not os.path.exists(curr_output_file):
+            os.makedirs(curr_output_dir)
+            with open(curr_output_file, 'w') as curr_csv_file:
+                writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
+                writer.writeheader()
+                writer.writerow(row)
+        else:
+            with open(curr_output_file, 'a') as curr_csv_file:
+                writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
+                writer.writerow(row)
+
+# Convert the loop detector measurements data files (raw) from ".csv" files to ".fits" files, while also
+# removing duplicated rows
+file_list = glob.glob(os.path.join(output_dir_ld_measurements_raw, '*', '*', '*', 'measurements.raw.*.csv'))
+for file in file_list:
+
+    # Determine the output file name
+    path, basename_with_ext = os.path.split(file)
+    basename_bits = basename_with_ext.split('.')
+    print('Writing out a loop detector measurements data table (raw) for: ' + basename_bits[3] + ',' + basename_bits[4])
+    curr_output_file = os.path.join(path, basename_bits[0] + '.' + basename_bits[1] + '.' + basename_bits[2] + '.' + basename_bits[3] + '.' + basename_bits[4] + '.fits')
+
+    # Read in the current loop detector measurements ".csv" data file
+    with open(file, mode = 'r') as csv_file:
+        lines = [line.rstrip('\n') for line in csv_file if line.rstrip('\n')]
+    lines = lines[1:]
+
+    # Remove any duplicated rows
+    lines_uniq = [line for line in set(lines)]
+    nld_measurements = len(lines_uniq)
+
+    # Prepare a table for the loop detector measurements data
+    ld_measurements_table = Table([Column(data = [empty_str]*nld_measurements, name = 'DATE'),
+                                   Column(data = numpy.zeros(nld_measurements, dtype = numpy.int32), name = 'INTERVAL_START'),
+                                   Column(data = numpy.zeros(nld_measurements, dtype = numpy.float64), name = 'FLOW'),
+                                   Column(data = numpy.zeros(nld_measurements, dtype = numpy.float64), name = 'OCCUPANCY'),
+                                   Column(data = numpy.zeros(nld_measurements, dtype = numpy.int32), name = 'ERROR_FLAG'),
+                                   Column(data = numpy.zeros(nld_measurements, dtype = numpy.float64), name = 'SPEED')])
+
+    # Ingest the loop detector measurements data into the table
+    for i, line in enumerate(lines_uniq):
+        line_bits = line.split(',')
+        if line_bits[0] == 'NA':                                                                 # Notes: - Date on which the measurement was taken (YYYY-MM-DD local time).
+            ld_measurements_table['DATE'][i] = '0000-00-00'                                      #        - Entries equal to 'NA' are replaced with the value '0000-00-00'.
+        else:                                                                                    #        - Minimum: '2008-05-16'
+            ld_measurements_table['DATE'][i] = line_bits[0]                                      #        - Maximum: '2018-02-26'
+        if line_bits[1] == 'NA':                                                                 # Notes: - Time at the start of the 300 second measurement interval (seconds after
+            ld_measurements_table['INTERVAL_START'][i] = numpy.int32(-1)                         #          midnight on the corresponding date - local time).
+        else:                                                                                    #        - Entries equal to 'NA' are replaced with the value '-1'.
+            if numpy.int32(line_bits[1]) >= 86400:                                               #        - ???? WHAT TO DO WITH VALUES > 86100 or >= 86400 ???? SOME INTERVALS ARE NOT 300 s???
+                ld_measurements_table['INTERVAL_START'][i] = numpy.int32(-1)                     #        - Minimum: 0
+            else:                                                                                #        - Maximum: ????
+                ld_measurements_table['INTERVAL_START'][i] = numpy.int32(line_bits[1])
+        if line_bits[2] == 'NA':                                                                 # Notes: - Flow measurement (veh/hour). This is the vehicle count in the 300 second
+            ld_measurements_table['FLOW'][i] = numpy.float64(-1.0)                               #          measurement interval, scaled to 1 hour.
+        else:                                                                                    #        - Entries equal to 'NA' are replaced with the value '-1.0'.
+            if numpy.float64(line_bits[2]) < 0.0:                                                #        - Entries with negative values are replaced with the value '-1.0'.
+                ld_measurements_table['FLOW'][i] = numpy.float64(-1.0)                           #        - Minimum: 0.0
+            else:                                                                                #        - Maximum: 902403.0
+                ld_measurements_table['FLOW'][i] = numpy.float64(line_bits[2])                   #        - ???? WHY ARE SOME VALUES NEGATIVE???? WHY ARE SOME VALUES NOT WHOLE NUMBERS??? WHY ARE THERE VALUES THAT ARE NOT MULTIPLES OF 12.0???
+        if line_bits[3] == 'Inf':                                                                # Notes: - Fraction of time in the 300 second measurement interval that the loop
+            ld_measurements_table['OCCUPANCY'][i] = numpy.float64(-1.0)                          #          detector is occupied by a vehicle.
+        elif line_bits[3] == 'NA':                                                               #        - Entries equal to 'Inf' are replaced with the value '-1.0'.
+            ld_measurements_table['OCCUPANCY'][i] = numpy.float64(-1.0)                          #        - Entries equal to 'NA' are replaced with the value '-1.0'.
+        else:                                                                                    #        - Entries with negative values are replaced with the value '-1.0'.
+            if numpy.float64(line_bits[3]) < 0.0:                                                #        - Minimum: ????
+                ld_measurements_table['OCCUPANCY'][i] = numpy.float64(-1.0)                      #        - Maximum: ????
+            else:                                                                                #        - ???? WHY ARE SOME VALUES NEGATIVE ???? WHY ARE SOME VALUES > 1.0 ????
+                ld_measurements_table['OCCUPANCY'][i] = numpy.float64(line_bits[3])              #        - Dan: How is vehicle length is accounted/corrected for??? Lukas: Its not done directly. We calibrate the free flow branch of the FD and the MFD.
+        if line_bits[4] == 'NA':                                                                 # Notes: - Flag indicating an error with the measurement (0 = No error; 1 = Error)
+            ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(0)                              #        - Entries equal to 'NA' are replaced with the value '0'.
+        elif line_bits[4] == '2':                                                                #        - Entries equal to '2' are replaced with the value '1'. ?????
+            ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(1)
+        else:
+            ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(line_bits[4])
+        if line_bits[5] == 'NA':                                                                 # Notes: - Average vehicle speed in the 300 second measurement interval (????UNITS????).  IS THIS CORRECT?????
+            ld_measurements_table['SPEED'][i] = numpy.float64(-1.0)                              #        - Some cities provide average speed measurements instead of occupancy.
+        else:                                                                                    #          Otherwise, average speeds are calculated from speed = flow / density.
+            if numpy.float64(line_bits[5]) < 0.0:                                                #        - Entries equal to 'NA' are replaced with the value '-1.0'.
+                ld_measurements_table['SPEED'][i] = numpy.float64(-1.0)                          #        - Entries with negative values are replaced with the value '-1.0'.
+            else:                                                                                #        - Minimum: 0.0
+                ld_measurements_table['SPEED'][i] = numpy.float64(line_bits[5])                  #        - Maximum: 253.0
+
+    # Sort the loop detector measurements data table by "DATE" followed by "INTERVAL_START"
+    ld_measurements_table = ld_measurements_table[numpy.argsort(ld_measurements_table, order = ['DATE', 'INTERVAL_START'])]
+
+    # Set "ERROR_FLAG" to "1" for any duplicated entries for "DATE + INTERVAL_START" in this data table
+    for i in range(nld_measurements - 1):
+        curr_date_interval = ld_measurements_table['DATE'][i] + '_' + str(ld_measurements_table['INTERVAL_START'][i])
+        next_date_interval = ld_measurements_table['DATE'][i + 1] + '_' + str(ld_measurements_table['INTERVAL_START'][i + 1])
+        if next_date_interval == curr_date_interval:
+            ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(1)
+            ld_measurements_table['ERROR_FLAG'][i + 1] = numpy.int32(1)
+
+    # Write out the loop detector measurements data table for the current city and detector ID
+    ld_measurements_table.write(curr_output_file, format = 'fits')
+    os.remove(file)
+
+# N.B: There are some duplicated entries for "DATE + INTERVAL_START" in the loop detector measurements tables.
+# These entries have had "ERROR_FLAG" set to "1".
+
+# Create the output directory for the loop detector measurements data tables (ARIMA)
+output_dir_ld_measurements_arima = os.path.join(config.output_dir, 's0.Loop.Detector.Measurements.ARIMA')
+print('')
+print('Creating the output directory for the loop detector measurements data tables (ARIMA): ' + output_dir_ld_measurements_arima)
+if os.path.exists(output_dir_ld_measurements_arima): shutil.rmtree(output_dir_ld_measurements_arima)
+os.makedirs(output_dir_ld_measurements_arima)
+
+# Read in the loop detector measurements data file (ARIMA), and write out the entries to data files organised
+# by city and detector ID
+print('Reading in and splitting the loop detector measurements data file (ARIMA): ' + config.original_measurements_arima_file)
+fieldnames = ['day', 'interval', 'flow', 'occ', 'error', 'speed', 'arima.flow', 'arima.occ', 'arima.speed']
+with open(config.original_measurements_arima_file, mode = 'r') as csv_file:
+    csv_contents = csv.DictReader(csv_file)
+    for row in csv_contents:
+        city_name = row['city']                                                      # Notes: - Name of the city that hosts the loop detector the measurement was taken with.
+                                                                                     #        - 41 cities with the same names as above.
+        country_name = general_functions.get_country_name(city_name)
+        detector_id = row['detid'].replace(' ', '_')                                 # Notes: - The ID of the loop detector the measurement was taken with.
+        detector_id = detector_id.replace('.', '_')                                  #        - Spaces replaced with underscores.
+        detector_id = detector_id.replace('/', '_')                                  #        - Characters '.', '/', '[', ']', '(' and ')' replaced with underscores.
+        detector_id = detector_id.replace('[', '_')                                  #        - Underscores at the beginning and end of the ID string are removed.
+        detector_id = detector_id.replace(']', '_')                                  #        - The only characters that are present in the loop detector ID entries are:
+        detector_id = detector_id.replace('(', '_')                                  #          '_', '-', '+', '0', ..., '9', 'a', ..., 'z', 'A', ..., 'Z'
+        detector_id = detector_id.replace(')', '_')
+        if detector_id[0] == '_': detector_id = detector_id[1:]
+        if detector_id[-1] == '_': detector_id = detector_id[0:(len(detector_id) - 1)]
+
+
+#### FOR SPEED ####
+#        if city_name != 'augsburg' or detector_id[0] != '0': break
+#### FOR SPEED ####
+
+
+        curr_output_dir = os.path.join(output_dir_ld_measurements_arima, country_name, city_name, detector_id)
+        curr_output_file = os.path.join(curr_output_dir, 'measurements.ARIMA.' + country_name + '.' + city_name + '.' + detector_id + '.csv')
+        if not os.path.exists(curr_output_file):
+            os.makedirs(curr_output_dir)
+            with open(curr_output_file, 'w') as curr_csv_file:
+                writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
+                writer.writeheader()
+                writer.writerow(row)
+        else:
+            with open(curr_output_file, 'a') as curr_csv_file:
+                writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
+                writer.writerow(row)
+
+# Convert the loop detector measurements data files (ARIMA) from ".csv" files to ".fits" files, while also
+# removing duplicated rows
+file_list = glob.glob(os.path.join(output_dir_ld_measurements_arima, '*', '*', '*', 'measurements.ARIMA.*.csv'))
+for file in file_list:
+
+    # Determine the output file name
+    path, basename_with_ext = os.path.split(file)
+    basename_bits = basename_with_ext.split('.')
+    print('Writing out a loop detector measurements data table (ARIMA) for: ' + basename_bits[3] + ',' + basename_bits[4])
+    curr_output_file = os.path.join(path, basename_bits[0] + '.' + basename_bits[1] + '.' + basename_bits[2] + '.' + basename_bits[3] + '.' + basename_bits[4] + '.fits')
+
+    # Read in the current loop detector measurements ".csv" data file
+    with open(file, mode = 'r') as csv_file:
+        lines = [line.rstrip('\n') for line in csv_file if line.rstrip('\n')]
+    lines = lines[1:]
+
+    # Remove any duplicated rows
+    lines_uniq = [line for line in set(lines)]
+    nld_measurements = len(lines_uniq)
+
+    # Prepare a table for the loop detector measurements data
+    ld_measurements_table = Table([Column(data = [empty_str]*nld_measurements, name = 'DATE'),
+                                   Column(data = numpy.zeros(nld_measurements, dtype = numpy.int32), name = 'INTERVAL_START'),
+                                   Column(data = numpy.zeros(nld_measurements, dtype = numpy.float64), name = 'FLOW'),
+                                   Column(data = numpy.zeros(nld_measurements, dtype = numpy.float64), name = 'OCCUPANCY'),
+                                   Column(data = numpy.zeros(nld_measurements, dtype = numpy.int32), name = 'ERROR_FLAG'),
+                                   Column(data = numpy.zeros(nld_measurements, dtype = numpy.float64), name = 'SPEED'),
+                                   Column(data = numpy.zeros(nld_measurements, dtype = numpy.float64), name = 'ARIMA_FLOW'),
+                                   Column(data = numpy.zeros(nld_measurements, dtype = numpy.float64), name = 'ARIMA_OCCUPANCY'),
+                                   Column(data = numpy.zeros(nld_measurements, dtype = numpy.float64), name = 'ARIMA_SPEED')])
+
+    # Ingest the loop detector measurements data into the table
+    for i, line in enumerate(lines_uniq):
+        line_bits = line.split(',')
+        if line_bits[0] == 'NA':                                                                 # Notes: - Date on which the measurement was taken (YYYY-MM-DD local time).
+            ld_measurements_table['DATE'][i] = '0000-00-00'                                      #        - Entries equal to 'NA' are replaced with the value '0000-00-00'.
+        else:                                                                                    #        - Minimum: '2008-05-16'
+            ld_measurements_table['DATE'][i] = line_bits[0]                                      #        - Maximum: '2018-02-26'
+        if line_bits[1] == 'NA':                                                                 # Notes: - Time at the start of the 300 second measurement interval (seconds after
+            ld_measurements_table['INTERVAL_START'][i] = numpy.int32(-1)                         #          midnight on the corresponding date - local time).
+        else:                                                                                    #        - Entries equal to 'NA' are replaced with the value '-1'.
+            if numpy.int32(line_bits[1]) >= 86400:                                               #        - ???? WHAT TO DO WITH VALUES > 86100 or >= 86400 ???? SOME INTERVALS ARE NOT 300 s???
+                ld_measurements_table['INTERVAL_START'][i] = numpy.int32(-1)                     #        - Minimum: 0
+            else:                                                                                #        - Maximum: ????
+                ld_measurements_table['INTERVAL_START'][i] = numpy.int32(line_bits[1])
+        if line_bits[2] == 'NA':                                                                 # Notes: - Flow measurement (veh/hour). This is the vehicle count in the 300 second
+            ld_measurements_table['FLOW'][i] = numpy.float64(-1.0)                               #          measurement interval, scaled to 1 hour.
+        else:                                                                                    #        - Entries equal to 'NA' are replaced with the value '-1.0'.
+            if numpy.float64(line_bits[2]) < 0.0:                                                #        - Entries with negative values are replaced with the value '-1.0'.
+                ld_measurements_table['FLOW'][i] = numpy.float64(-1.0)                           #        - Minimum: 0.0
+            else:                                                                                #        - Maximum: 902403.0
+                ld_measurements_table['FLOW'][i] = numpy.float64(line_bits[2])                   #        - ???? WHY ARE SOME VALUES NEGATIVE???? WHY ARE SOME VALUES NOT WHOLE NUMBERS??? WHY ARE THERE VALUES THAT ARE NOT MULTIPLES OF 12.0???
+        if line_bits[3] == 'Inf':                                                                # Notes: - Fraction of time in the 300 second measurement interval that the loop
+            ld_measurements_table['OCCUPANCY'][i] = numpy.float64(-1.0)                          #          detector is occupied by a vehicle.
+        elif line_bits[3] == 'NA':                                                               #        - Entries equal to 'Inf' are replaced with the value '-1.0'.
+            ld_measurements_table['OCCUPANCY'][i] = numpy.float64(-1.0)                          #        - Entries equal to 'NA' are replaced with the value '-1.0'.
+        else:                                                                                    #        - Entries with negative values are replaced with the value '-1.0'.
+            if numpy.float64(line_bits[3]) < 0.0:                                                #        - Minimum: ????
+                ld_measurements_table['OCCUPANCY'][i] = numpy.float64(-1.0)                      #        - Maximum: ????
+            else:                                                                                #        - ???? WHY ARE SOME VALUES NEGATIVE ???? WHY ARE SOME VALUES > 1.0 ????
+                ld_measurements_table['OCCUPANCY'][i] = numpy.float64(line_bits[3])              #        - Dan: How is vehicle length is accounted/corrected for??? Lukas: Its not done directly. We calibrate the free flow branch of the FD and the MFD.
+        if line_bits[4] == 'NA':                                                                 # Notes: - Flag indicating an error with the measurement (0 = No error; 1 = Error)
+            ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(0)                              #        - Entries equal to 'NA' are replaced with the value '0'.
+        elif line_bits[4] == '2':                                                                #        - Entries equal to '2' are replaced with the value '1'. ?????
+            ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(1)
+        else:
+            ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(line_bits[4])
+        if line_bits[5] == 'NA':                                                                 # Notes: - Average vehicle speed in the 300 second measurement interval (????UNITS????).  IS THIS CORRECT?????
+            ld_measurements_table['SPEED'][i] = numpy.float64(-1.0)                              #        - Some cities provide average speed measurements instead of occupancy.
+        else:                                                                                    #          Otherwise, average speeds are calculated from speed = flow / density.
+            if numpy.float64(line_bits[5]) < 0.0:                                                #        - Entries equal to 'NA' are replaced with the value '-1.0'.
+                ld_measurements_table['SPEED'][i] = numpy.float64(-1.0)                          #        - Entries with negative values are replaced with the value '-1.0'.
+            else:                                                                                #        - Minimum: 0.0
+                ld_measurements_table['SPEED'][i] = numpy.float64(line_bits[5])                  #        - Maximum: 253.0
+        if line_bits[6] == 'NA':                                                                 # Notes: - Flow measurement (veh/hour; ARIMA smoothed). This is the vehicle count in
+            ld_measurements_table['ARIMA_FLOW'][i] = numpy.float64(-1.0)                         #          the 300 second measurement interval, scaled to 1 hour.
+        else:                                                                                    #        - Entries equal to 'NA' are replaced with the value '-1.0'.
+            if numpy.float64(line_bits[6]) < 0.0:                                                #        - Entries with negative values are replaced with the value '-1.0'.
+                ld_measurements_table['ARIMA_FLOW'][i] = numpy.float64(-1.0)                     #        - Minimum: 0.0
+            else:                                                                                #        - Maximum: 899416.727
+                ld_measurements_table['ARIMA_FLOW'][i] = numpy.float64(line_bits[6])             #        - ???? WHY ARE SOME VALUES NEGATIVE???? WHY ARE SOME VALUES NOT WHOLE NUMBERS??? WHY ARE THERE VALUES THAT ARE NOT MULTIPLES OF 12.0???
+        if line_bits[7] == 'Inf':                                                                # Notes: - Fraction of time in the 300 second measurement interval that the loop
+            ld_measurements_table['ARIMA_OCCUPANCY'][i] = numpy.float64(-1.0)                    #          detector is occupied by a vehicle (ARIMA smoothed).
+        elif line_bits[7] == 'NA':                                                               #        - Entries equal to 'Inf' are replaced with the value '-1.0'.
+            ld_measurements_table['ARIMA_OCCUPANCY'][i] = numpy.float64(-1.0)                    #        - Entries equal to 'NA' are replaced with the value '-1.0'.
+        else:                                                                                    #        - Entries with negative values are replaced with the value '-1.0'.
+            if numpy.float64(line_bits[7]) < 0.0:                                                #        - Minimum: ????
+                ld_measurements_table['ARIMA_OCCUPANCY'][i] = numpy.float64(-1.0)                #        - Maximum: ????
+            else:                                                                                #        - ???? WHY ARE SOME VALUES NEGATIVE ???? WHY ARE SOME VALUES > 1.0 ????
+                ld_measurements_table['ARIMA_OCCUPANCY'][i] = numpy.float64(line_bits[7])        #        - Dan: How is vehicle length is accounted/corrected for??? Lukas: Its not done directly. We calibrate the free flow branch of the FD and the MFD.
+        if line_bits[8] == 'NA':                                                                 # Notes: - Average vehicle speed in the 300 second measurement interval (????UNITS????; ARIMA smoothed).  IS THIS CORRECT?????
+            ld_measurements_table['ARIMA_SPEED'][i] = numpy.float64(-1.0)                        #        - Some cities provide average speed measurements instead of occupancy.
+        else:                                                                                    #          Otherwise, average speeds are calculated from speed = flow / density.
+            if numpy.float64(line_bits[8]) < 0.0:                                                #        - Entries equal to 'NA' are replaced with the value '-1.0'.
+                ld_measurements_table['ARIMA_SPEED'][i] = numpy.float64(-1.0)                    #        - Entries with negative values are replaced with the value '-1.0'.
+            else:                                                                                #        - Minimum: 0.0
+                ld_measurements_table['ARIMA_SPEED'][i] = numpy.float64(line_bits[8])            #        - Maximum: 206.024
+
+    # Sort the loop detector measurements data table by "DATE" followed by "INTERVAL_START"
+    ld_measurements_table = ld_measurements_table[numpy.argsort(ld_measurements_table, order = ['DATE', 'INTERVAL_START'])]
+
+    # Set "ERROR_FLAG" to "1" for any duplicated entries for "DATE + INTERVAL_START" in this data table
+    for i in range(nld_measurements - 1):
+        curr_date_interval = ld_measurements_table['DATE'][i] + '_' + str(ld_measurements_table['INTERVAL_START'][i])
+        next_date_interval = ld_measurements_table['DATE'][i + 1] + '_' + str(ld_measurements_table['INTERVAL_START'][i + 1])
+        if next_date_interval == curr_date_interval:
+            ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(1)
+            ld_measurements_table['ERROR_FLAG'][i + 1] = numpy.int32(1)
+
+    # Write out the loop detector measurements data table for the current city and detector ID
+    ld_measurements_table.write(curr_output_file, format = 'fits')
+    os.remove(file)
+
+# N.B: There are some duplicated entries for "DATE + INTERVAL_START" in the loop detector measurements tables.
+# These entries have had "ERROR_FLAG" set to "1".
+
 
 #### ABOVE FULLY READ AND TESTED
 
 
-#s0.Loop.Detector.Measurements
+
 #s0.Underlying.Network
