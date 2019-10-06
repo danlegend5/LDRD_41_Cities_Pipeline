@@ -69,10 +69,9 @@ with open(config.original_detectors_file, mode = 'r') as csv_file:
                                                                                      #        - Latitudes are quoted in range -90.0 to 90.0 degrees.
                                                                                      #        - Minimum: -37.8745292808731 deg
                                                                                      #        - Maximum: 54.70488 deg
-        ld_locations_table['LENGTH'][i] = numpy.float64(row['length'])               # Notes: - Length (???UNITS???) of the associated link road (i.e the road where the detector is
-                                                                                     #          located).
-                                                                                     #        - Minimum: 0.007199797164467 ???UNITS???
-                                                                                     #        - Maximum: 16.6844474508417 ???UNITS???
+        ld_locations_table['LENGTH'][i] = numpy.float64(row['length'])               # Notes: - Length (km) of the associated link road (i.e the road where the detector is located).
+                                                                                     #        - Minimum: 0.007199797164467 km
+                                                                                     #        - Maximum: 16.6844474508417 km
         if row['pos'] == 'NA':                                                       # Notes: - Loop location as a distance (km) along the associated link road from the downstream
             ld_locations_table['POSITION'][i] = numpy.float64(-1.0)                  #          intersection.
         else:                                                                        #        - 45 out of 1042 entries for "utrecht" are equal to 'NA'. These are replaced with the
@@ -138,9 +137,8 @@ with open(config.original_detectors_file, mode = 'r') as csv_file:
 print('Read in ' + str(nld_locations) + ' rows...')
 
 # N.B: There is one duplicated entry for "CITY_NAME = toulouse" and "DETECTOR_ID = 262" in the loop detector
-# locations table. The remaining columns have different entries. Hence, when using loop detector measurements,
-# one must check that they can be associated with **exactly** one valid entry in a loop detector locations
-# table.
+# locations table. The remaining columns have different entries. Due to the ambiguity, these two entries will
+# be filtered out in the next stage of the pipeline.
 
 # Determine the set of unique city names
 print('Determining the set of unique city names...')
@@ -258,9 +256,9 @@ with open(config.original_measurements_raw_file, mode = 'r') as csv_file:
         if detector_id[-1] == '_': detector_id = detector_id[0:(len(detector_id) - 1)]
 
 
-#### FOR SPEED ####
-#        if city_name != 'augsburg' or detector_id[0] != '0': break
-#### FOR SPEED ####
+##### FOR SPEED ####
+##        if city_name != 'augsburg' or detector_id[0] != '0': break
+##### FOR SPEED ####
 
 
         curr_output_dir = os.path.join(output_dir_ld_measurements_raw, country_name, city_name, detector_id)
@@ -311,36 +309,38 @@ for file in file_list:
             ld_measurements_table['DATE'][i] = '0000-00-00'                                      #        - Entries equal to 'NA' are replaced with the value '0000-00-00'.
         else:                                                                                    #        - Minimum: '2008-05-16'
             ld_measurements_table['DATE'][i] = line_bits[0]                                      #        - Maximum: '2018-02-26'
-        if line_bits[1] == 'NA':                                                                 # Notes: - Time at the start of the 300 second measurement interval (seconds after
-            ld_measurements_table['INTERVAL_START'][i] = numpy.int32(-1)                         #          midnight on the corresponding date - local time).
+        if line_bits[1] == 'NA':                                                                 # Notes: - Time at the start of the measurement interval (seconds after midnight
+            ld_measurements_table['INTERVAL_START'][i] = numpy.int32(-1)                         #          on the corresponding date - local time).
         else:                                                                                    #        - Entries equal to 'NA' are replaced with the value '-1'.
-            if numpy.int32(line_bits[1]) >= 86400:                                               #        - ???? WHAT TO DO WITH VALUES > 86100 or >= 86400 ???? SOME INTERVALS ARE NOT 300 s???
-                ld_measurements_table['INTERVAL_START'][i] = numpy.int32(-1)                     #        - Minimum: 0
-            else:                                                                                #        - Maximum: ????
+            if numpy.int32(line_bits[1]) > 86400:                                                #        - Minimum: 0
+                ld_measurements_table['INTERVAL_START'][i] = numpy.int32(-1)                     #        - Maximum: 86400
+            else:
                 ld_measurements_table['INTERVAL_START'][i] = numpy.int32(line_bits[1])
-        if line_bits[2] == 'NA':                                                                 # Notes: - Flow measurement (veh/hour). This is the vehicle count in the 300 second
+        if line_bits[2] == 'NA':                                                                 # Notes: - Flow measurement (veh/hour). This is the vehicle count in the
             ld_measurements_table['FLOW'][i] = numpy.float64(-1.0)                               #          measurement interval, scaled to 1 hour.
         else:                                                                                    #        - Entries equal to 'NA' are replaced with the value '-1.0'.
             if numpy.float64(line_bits[2]) < 0.0:                                                #        - Entries with negative values are replaced with the value '-1.0'.
                 ld_measurements_table['FLOW'][i] = numpy.float64(-1.0)                           #        - Minimum: 0.0
             else:                                                                                #        - Maximum: 902403.0
-                ld_measurements_table['FLOW'][i] = numpy.float64(line_bits[2])                   #        - ???? WHY ARE SOME VALUES NEGATIVE???? WHY ARE SOME VALUES NOT WHOLE NUMBERS??? WHY ARE THERE VALUES THAT ARE NOT MULTIPLES OF 12.0???
-        if line_bits[3] == 'Inf':                                                                # Notes: - Fraction of time in the 300 second measurement interval that the loop
-            ld_measurements_table['OCCUPANCY'][i] = numpy.float64(-1.0)                          #          detector is occupied by a vehicle.
+                ld_measurements_table['FLOW'][i] = numpy.float64(line_bits[2])
+        if line_bits[3] == 'Inf':                                                                # Notes: - Fraction of time in the measurement interval that the loop detector
+            ld_measurements_table['OCCUPANCY'][i] = numpy.float64(-1.0)                          #          is occupied by a vehicle.
         elif line_bits[3] == 'NA':                                                               #        - Entries equal to 'Inf' are replaced with the value '-1.0'.
             ld_measurements_table['OCCUPANCY'][i] = numpy.float64(-1.0)                          #        - Entries equal to 'NA' are replaced with the value '-1.0'.
         else:                                                                                    #        - Entries with negative values are replaced with the value '-1.0'.
-            if numpy.float64(line_bits[3]) < 0.0:                                                #        - Minimum: ????
-                ld_measurements_table['OCCUPANCY'][i] = numpy.float64(-1.0)                      #        - Maximum: ????
-            else:                                                                                #        - ???? WHY ARE SOME VALUES NEGATIVE ???? WHY ARE SOME VALUES > 1.0 ????
-                ld_measurements_table['OCCUPANCY'][i] = numpy.float64(line_bits[3])              #        - Dan: How is vehicle length is accounted/corrected for??? Lukas: Its not done directly. We calibrate the free flow branch of the FD and the MFD.
+            if numpy.float64(line_bits[3]) < 0.0:                                                #        - Entries greater than unity are replaced with the value '-1.0'.
+                ld_measurements_table['OCCUPANCY'][i] = numpy.float64(-1.0)                      #        - Minimum: 0.0
+            elif numpy.float64(line_bits[3]) > 1.0:                                              #        - Maximum: 1.0
+                ld_measurements_table['OCCUPANCY'][i] = numpy.float64(-1.0)                      #        - Q: How is vehicle length accounted/corrected for?
+            else:                                                                                #          A: It's not done directly. It is calibrated via the free flow branch
+                ld_measurements_table['OCCUPANCY'][i] = numpy.float64(line_bits[3])              #             of the FD and the MFD.
         if line_bits[4] == 'NA':                                                                 # Notes: - Flag indicating an error with the measurement (0 = No error; 1 = Error)
             ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(0)                              #        - Entries equal to 'NA' are replaced with the value '0'.
-        elif line_bits[4] == '2':                                                                #        - Entries equal to '2' are replaced with the value '1'. ?????
+        elif line_bits[4] == '2':                                                                #        - Entries equal to '2' are replaced with the value '1'.
             ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(1)
         else:
             ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(line_bits[4])
-        if line_bits[5] == 'NA':                                                                 # Notes: - Average vehicle speed in the 300 second measurement interval (????UNITS????).  IS THIS CORRECT?????
+        if line_bits[5] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (????UNITS????).
             ld_measurements_table['SPEED'][i] = numpy.float64(-1.0)                              #        - Some cities provide average speed measurements instead of occupancy.
         else:                                                                                    #          Otherwise, average speeds are calculated from speed = flow / density.
             if numpy.float64(line_bits[5]) < 0.0:                                                #        - Entries equal to 'NA' are replaced with the value '-1.0'.
@@ -394,9 +394,9 @@ with open(config.original_measurements_arima_file, mode = 'r') as csv_file:
         if detector_id[-1] == '_': detector_id = detector_id[0:(len(detector_id) - 1)]
 
 
-#### FOR SPEED ####
-#        if city_name != 'augsburg' or detector_id[0] != '0': break
-#### FOR SPEED ####
+##### FOR SPEED ####
+##        if city_name != 'augsburg' or detector_id[0] != '0': break
+##### FOR SPEED ####
 
 
         curr_output_dir = os.path.join(output_dir_ld_measurements_arima, country_name, city_name, detector_id)
@@ -450,36 +450,38 @@ for file in file_list:
             ld_measurements_table['DATE'][i] = '0000-00-00'                                      #        - Entries equal to 'NA' are replaced with the value '0000-00-00'.
         else:                                                                                    #        - Minimum: '2008-05-16'
             ld_measurements_table['DATE'][i] = line_bits[0]                                      #        - Maximum: '2018-02-26'
-        if line_bits[1] == 'NA':                                                                 # Notes: - Time at the start of the 300 second measurement interval (seconds after
-            ld_measurements_table['INTERVAL_START'][i] = numpy.int32(-1)                         #          midnight on the corresponding date - local time).
+        if line_bits[1] == 'NA':                                                                 # Notes: - Time at the start of the measurement interval (seconds after midnight
+            ld_measurements_table['INTERVAL_START'][i] = numpy.int32(-1)                         #          on the corresponding date - local time).
         else:                                                                                    #        - Entries equal to 'NA' are replaced with the value '-1'.
-            if numpy.int32(line_bits[1]) >= 86400:                                               #        - ???? WHAT TO DO WITH VALUES > 86100 or >= 86400 ???? SOME INTERVALS ARE NOT 300 s???
-                ld_measurements_table['INTERVAL_START'][i] = numpy.int32(-1)                     #        - Minimum: 0
-            else:                                                                                #        - Maximum: ????
+            if numpy.int32(line_bits[1]) > 86400:                                                #        - Minimum: 0
+                ld_measurements_table['INTERVAL_START'][i] = numpy.int32(-1)                     #        - Maximum: 86400
+            else:
                 ld_measurements_table['INTERVAL_START'][i] = numpy.int32(line_bits[1])
-        if line_bits[2] == 'NA':                                                                 # Notes: - Flow measurement (veh/hour). This is the vehicle count in the 300 second
+        if line_bits[2] == 'NA':                                                                 # Notes: - Flow measurement (veh/hour). This is the vehicle count in the
             ld_measurements_table['FLOW'][i] = numpy.float64(-1.0)                               #          measurement interval, scaled to 1 hour.
         else:                                                                                    #        - Entries equal to 'NA' are replaced with the value '-1.0'.
             if numpy.float64(line_bits[2]) < 0.0:                                                #        - Entries with negative values are replaced with the value '-1.0'.
                 ld_measurements_table['FLOW'][i] = numpy.float64(-1.0)                           #        - Minimum: 0.0
             else:                                                                                #        - Maximum: 902403.0
-                ld_measurements_table['FLOW'][i] = numpy.float64(line_bits[2])                   #        - ???? WHY ARE SOME VALUES NEGATIVE???? WHY ARE SOME VALUES NOT WHOLE NUMBERS??? WHY ARE THERE VALUES THAT ARE NOT MULTIPLES OF 12.0???
-        if line_bits[3] == 'Inf':                                                                # Notes: - Fraction of time in the 300 second measurement interval that the loop
-            ld_measurements_table['OCCUPANCY'][i] = numpy.float64(-1.0)                          #          detector is occupied by a vehicle.
+                ld_measurements_table['FLOW'][i] = numpy.float64(line_bits[2])
+        if line_bits[3] == 'Inf':                                                                # Notes: - Fraction of time in the measurement interval that the loop detector
+            ld_measurements_table['OCCUPANCY'][i] = numpy.float64(-1.0)                          #          is occupied by a vehicle.
         elif line_bits[3] == 'NA':                                                               #        - Entries equal to 'Inf' are replaced with the value '-1.0'.
             ld_measurements_table['OCCUPANCY'][i] = numpy.float64(-1.0)                          #        - Entries equal to 'NA' are replaced with the value '-1.0'.
         else:                                                                                    #        - Entries with negative values are replaced with the value '-1.0'.
-            if numpy.float64(line_bits[3]) < 0.0:                                                #        - Minimum: ????
-                ld_measurements_table['OCCUPANCY'][i] = numpy.float64(-1.0)                      #        - Maximum: ????
-            else:                                                                                #        - ???? WHY ARE SOME VALUES NEGATIVE ???? WHY ARE SOME VALUES > 1.0 ????
-                ld_measurements_table['OCCUPANCY'][i] = numpy.float64(line_bits[3])              #        - Dan: How is vehicle length is accounted/corrected for??? Lukas: Its not done directly. We calibrate the free flow branch of the FD and the MFD.
+            if numpy.float64(line_bits[3]) < 0.0:                                                #        - Entries greater than unity are replaced with the value '-1.0'.
+                ld_measurements_table['OCCUPANCY'][i] = numpy.float64(-1.0)                      #        - Minimum: 0.0
+            elif numpy.float64(line_bits[3]) > 1.0:                                              #        - Maximum: 1.0
+                ld_measurements_table['OCCUPANCY'][i] = numpy.float64(-1.0)                      #        - Q: How is vehicle length accounted/corrected for?
+            else:                                                                                #          A: It's not done directly. It is calibrated via the free flow branch
+                ld_measurements_table['OCCUPANCY'][i] = numpy.float64(line_bits[3])              #             of the FD and the MFD.
         if line_bits[4] == 'NA':                                                                 # Notes: - Flag indicating an error with the measurement (0 = No error; 1 = Error)
             ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(0)                              #        - Entries equal to 'NA' are replaced with the value '0'.
-        elif line_bits[4] == '2':                                                                #        - Entries equal to '2' are replaced with the value '1'. ?????
+        elif line_bits[4] == '2':                                                                #        - Entries equal to '2' are replaced with the value '1'.
             ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(1)
         else:
             ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(line_bits[4])
-        if line_bits[5] == 'NA':                                                                 # Notes: - Average vehicle speed in the 300 second measurement interval (????UNITS????).  IS THIS CORRECT?????
+        if line_bits[5] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (????UNITS????).
             ld_measurements_table['SPEED'][i] = numpy.float64(-1.0)                              #        - Some cities provide average speed measurements instead of occupancy.
         else:                                                                                    #          Otherwise, average speeds are calculated from speed = flow / density.
             if numpy.float64(line_bits[5]) < 0.0:                                                #        - Entries equal to 'NA' are replaced with the value '-1.0'.
@@ -487,22 +489,24 @@ for file in file_list:
             else:                                                                                #        - Minimum: 0.0
                 ld_measurements_table['SPEED'][i] = numpy.float64(line_bits[5])                  #        - Maximum: 253.0
         if line_bits[6] == 'NA':                                                                 # Notes: - Flow measurement (veh/hour; ARIMA smoothed). This is the vehicle count in
-            ld_measurements_table['ARIMA_FLOW'][i] = numpy.float64(-1.0)                         #          the 300 second measurement interval, scaled to 1 hour.
+            ld_measurements_table['ARIMA_FLOW'][i] = numpy.float64(-1.0)                         #          the measurement interval, scaled to 1 hour.
         else:                                                                                    #        - Entries equal to 'NA' are replaced with the value '-1.0'.
             if numpy.float64(line_bits[6]) < 0.0:                                                #        - Entries with negative values are replaced with the value '-1.0'.
                 ld_measurements_table['ARIMA_FLOW'][i] = numpy.float64(-1.0)                     #        - Minimum: 0.0
             else:                                                                                #        - Maximum: 899416.727
-                ld_measurements_table['ARIMA_FLOW'][i] = numpy.float64(line_bits[6])             #        - ???? WHY ARE SOME VALUES NEGATIVE???? WHY ARE SOME VALUES NOT WHOLE NUMBERS??? WHY ARE THERE VALUES THAT ARE NOT MULTIPLES OF 12.0???
-        if line_bits[7] == 'Inf':                                                                # Notes: - Fraction of time in the 300 second measurement interval that the loop
-            ld_measurements_table['ARIMA_OCCUPANCY'][i] = numpy.float64(-1.0)                    #          detector is occupied by a vehicle (ARIMA smoothed).
+                ld_measurements_table['ARIMA_FLOW'][i] = numpy.float64(line_bits[6])
+        if line_bits[7] == 'Inf':                                                                # Notes: - Fraction of time in the measurement interval that the loop detector
+            ld_measurements_table['ARIMA_OCCUPANCY'][i] = numpy.float64(-1.0)                    #          is occupied by a vehicle (ARIMA smoothed).
         elif line_bits[7] == 'NA':                                                               #        - Entries equal to 'Inf' are replaced with the value '-1.0'.
             ld_measurements_table['ARIMA_OCCUPANCY'][i] = numpy.float64(-1.0)                    #        - Entries equal to 'NA' are replaced with the value '-1.0'.
         else:                                                                                    #        - Entries with negative values are replaced with the value '-1.0'.
-            if numpy.float64(line_bits[7]) < 0.0:                                                #        - Minimum: ????
-                ld_measurements_table['ARIMA_OCCUPANCY'][i] = numpy.float64(-1.0)                #        - Maximum: ????
-            else:                                                                                #        - ???? WHY ARE SOME VALUES NEGATIVE ???? WHY ARE SOME VALUES > 1.0 ????
-                ld_measurements_table['ARIMA_OCCUPANCY'][i] = numpy.float64(line_bits[7])        #        - Dan: How is vehicle length is accounted/corrected for??? Lukas: Its not done directly. We calibrate the free flow branch of the FD and the MFD.
-        if line_bits[8] == 'NA':                                                                 # Notes: - Average vehicle speed in the 300 second measurement interval (????UNITS????; ARIMA smoothed).  IS THIS CORRECT?????
+            if numpy.float64(line_bits[7]) < 0.0:                                                #        - Entries greater than unity are replaced with the value '-1.0'.
+                ld_measurements_table['ARIMA_OCCUPANCY'][i] = numpy.float64(-1.0)                #        - Minimum: 0.0
+            elif numpy.float64(line_bits[7]) > 1.0:                                              #        - Maximum: 1.0
+                ld_measurements_table['ARIMA_OCCUPANCY'][i] = numpy.float64(-1.0)                #        - Q: How is vehicle length accounted/corrected for?
+            else:                                                                                #          A: It's not done directly. It is calibrated via the free flow branch
+                ld_measurements_table['ARIMA_OCCUPANCY'][i] = numpy.float64(line_bits[7])        #             of the FD and the MFD.
+        if line_bits[8] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (????UNITS????; ARIMA smoothed).
             ld_measurements_table['ARIMA_SPEED'][i] = numpy.float64(-1.0)                        #        - Some cities provide average speed measurements instead of occupancy.
         else:                                                                                    #          Otherwise, average speeds are calculated from speed = flow / density.
             if numpy.float64(line_bits[8]) < 0.0:                                                #        - Entries equal to 'NA' are replaced with the value '-1.0'.
@@ -532,5 +536,9 @@ for file in file_list:
 #### ABOVE FULLY READ AND TESTED
 
 
+#Copy over underlying network to s0.Underlying.Network
 
-#s0.Underlying.Network
+
+# Finish
+print('')
+print('Finished!')
