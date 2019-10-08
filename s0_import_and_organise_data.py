@@ -254,13 +254,6 @@ with open(config.original_measurements_raw_file, mode = 'r') as csv_file:
         detector_id = detector_id.replace(')', '_')
         if detector_id[0] == '_': detector_id = detector_id[1:]
         if detector_id[-1] == '_': detector_id = detector_id[0:(len(detector_id) - 1)]
-
-
-##### FOR SPEED ####
-##        if city_name != 'augsburg' or detector_id[0] != '0': break
-##### FOR SPEED ####
-
-
         curr_output_dir = os.path.join(output_dir_ld_measurements_raw, country_name, city_name, detector_id)
         curr_output_file = os.path.join(curr_output_dir, 'measurements.raw.' + country_name + '.' + city_name + '.' + detector_id + '.csv')
         if not os.path.exists(curr_output_file):
@@ -340,7 +333,7 @@ for file in file_list:
             ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(1)
         else:
             ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(line_bits[4])
-        if line_bits[5] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (????UNITS????).
+        if line_bits[5] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (???UNITS???).
             ld_measurements_table['SPEED'][i] = numpy.float64(-1.0)                              #        - Some cities provide average speed measurements instead of occupancy.
         else:                                                                                    #          Otherwise, average speeds are calculated from speed = flow / density.
             if numpy.float64(line_bits[5]) < 0.0:                                                #        - Entries equal to 'NA' are replaced with the value '-1.0'.
@@ -392,13 +385,6 @@ with open(config.original_measurements_arima_file, mode = 'r') as csv_file:
         detector_id = detector_id.replace(')', '_')
         if detector_id[0] == '_': detector_id = detector_id[1:]
         if detector_id[-1] == '_': detector_id = detector_id[0:(len(detector_id) - 1)]
-
-
-##### FOR SPEED ####
-##        if city_name != 'augsburg' or detector_id[0] != '0': break
-##### FOR SPEED ####
-
-
         curr_output_dir = os.path.join(output_dir_ld_measurements_arima, country_name, city_name, detector_id)
         curr_output_file = os.path.join(curr_output_dir, 'measurements.ARIMA.' + country_name + '.' + city_name + '.' + detector_id + '.csv')
         if not os.path.exists(curr_output_file):
@@ -481,7 +467,7 @@ for file in file_list:
             ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(1)
         else:
             ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(line_bits[4])
-        if line_bits[5] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (????UNITS????).
+        if line_bits[5] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (???UNITS???).
             ld_measurements_table['SPEED'][i] = numpy.float64(-1.0)                              #        - Some cities provide average speed measurements instead of occupancy.
         else:                                                                                    #          Otherwise, average speeds are calculated from speed = flow / density.
             if numpy.float64(line_bits[5]) < 0.0:                                                #        - Entries equal to 'NA' are replaced with the value '-1.0'.
@@ -506,7 +492,7 @@ for file in file_list:
                 ld_measurements_table['ARIMA_OCCUPANCY'][i] = numpy.float64(-1.0)                #        - Q: How is vehicle length accounted/corrected for?
             else:                                                                                #          A: It's not done directly. It is calibrated via the free flow branch
                 ld_measurements_table['ARIMA_OCCUPANCY'][i] = numpy.float64(line_bits[7])        #             of the FD and the MFD.
-        if line_bits[8] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (????UNITS????; ARIMA smoothed).
+        if line_bits[8] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (???UNITS???; ARIMA smoothed).
             ld_measurements_table['ARIMA_SPEED'][i] = numpy.float64(-1.0)                        #        - Some cities provide average speed measurements instead of occupancy.
         else:                                                                                    #          Otherwise, average speeds are calculated from speed = flow / density.
             if numpy.float64(line_bits[8]) < 0.0:                                                #        - Entries equal to 'NA' are replaced with the value '-1.0'.
@@ -531,13 +517,6 @@ for file in file_list:
 
 # N.B: There are some duplicated entries for "DATE + INTERVAL_START" in the loop detector measurements tables.
 # These entries have had "ERROR_FLAG" set to "1".
-
-
-#### ABOVE FULLY READ AND TESTED
-
-
-#Copy over underlying network to s0.Underlying.Network
-
 
 # Finish
 print('')
