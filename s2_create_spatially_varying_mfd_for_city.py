@@ -36,8 +36,6 @@ if country_name == 'unknown':
     print('ERROR - The input parameter "city_name" is not recognised...')
     exit()
 input_dir_ld_locations = os.path.join(config.output_dir, 's1.Loop.Detector.Locations')
-input_dir_ld_measurements_raw = os.path.join(config.output_dir, 's1.Loop.Detector.Measurements.Raw')
-input_dir_ld_measurements_arima = os.path.join(config.output_dir, 's1.Loop.Detector.Measurements.ARIMA')
 
 # Check that the remaining input parameters make sense
 try:
@@ -144,13 +142,12 @@ for i in range(nx):
         # ANALYSE NETWORK FOR CONNECTED GROUPS OF ROADS - ONLY CONSIDER THE LARGEST CONNECTED GROUP (TOTAL ROAD LENGTH?) - REJECT LOOP DETECTORS THAT ARE NOT ON ROADS IN THIS LARGEST GROUP
         # RECORD NUMBER OF DISJOINT GROUPS OF ROADS
 
-
         # CHECK IF THIS SET OF LOOP DETECTORS IS THE SAME AS THOSE ANALYSED IN THE PREVIOUS GRID POINT - IN WHICH CASE ADOPT PREVIOUS RESULTS FOR SPEED
 
         # AT THIS POINT CALL FUNCTION TO CONSTRUCT MFD FOR SET OF LOOP DETECTORS...
         print('Constructing the MFD for the current spatial grid point...')
-        result = mfd_functions.construct_mfd(ld_locations_table[ld_selection])
-        print(result)
+        status = mfd_functions.construct_mfd(ld_locations_table[ld_selection], country_name, city_name, 'ARIMA')
+        print(status)
 
         # FIT THE MFD AND EXTRACT CRITICAL DENSITY ETC.
 
@@ -162,10 +159,12 @@ for i in range(nx):
 
 
 
+#        exit()
+
+
+
+
 exit()
-
-
-
 
 import matplotlib
 matplotlib.use('Agg')
