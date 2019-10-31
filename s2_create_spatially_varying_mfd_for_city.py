@@ -13,6 +13,7 @@ import os
 from astropy.table import Table
 from LDDA_MFD_Project1_Pipeline.config import config
 from LDDA_MFD_Project1_Pipeline.lib import general_functions
+from LDDA_MFD_Project1_Pipeline.lib import mfd_functions
 
 # Set up the command line arguments
 parser = argparse.ArgumentParser(description = 'This script is used to construct a spatially-varying MFD across the area '
@@ -88,7 +89,7 @@ for i in range(nld_locations):
 # their host roads in any of the cities considered are less than 0.2%, and the error in the adopted radius of the Earth
 # for any city is less than 0.1%.
 print('')
-print('Creating a grid covering the locations of the loop detectors and their host roads...')
+print('Creating a spatial grid covering the locations of the loop detectors and their host roads...')
 rad_per_deg = numpy.pi/180.0
 mean_ld_longitude = numpy.mean(ld_locations_table['LONGITUDE'])
 mean_ld_latitude = numpy.mean(ld_locations_table['LATITUDE'])
@@ -98,7 +99,7 @@ ld_y = (config.radius_earth*rad_per_deg)*(ld_locations_table['LATITUDE'] - mean_
 link_pts_x = (config.radius_earth*rad_per_deg*cos_factor)*(ld_locations_table['LINK_PTS_LONGITUDE'] - mean_ld_longitude)
 link_pts_y = (config.radius_earth*rad_per_deg)*(ld_locations_table['LINK_PTS_LATITUDE'] - mean_ld_latitude)
 
-# Create a grid covering the locations of the loop detectors and their host roads
+# Create a spatial grid covering the locations of the loop detectors and their host roads
 min_x = numpy.minimum(numpy.min(ld_x), numpy.min(link_pts_x[selection_links]))
 max_x = numpy.maximum(numpy.max(ld_x), numpy.max(link_pts_x[selection_links]))
 min_y = numpy.minimum(numpy.min(ld_y), numpy.min(link_pts_y[selection_links]))
@@ -116,7 +117,7 @@ ny = ny + 1
 grid_x = lo_x + (grid_spacing*numpy.arange(0, nx, 1, dtype = numpy.float64))
 grid_y = lo_y + (grid_spacing*numpy.arange(0, ny, 1, dtype = numpy.float64))
 
-# For each grid point
+# For each spatial grid point
 for i in range(nx):
     curr_grid_x = grid_x[i]
     ld_dist_x = ld_x - curr_grid_x
@@ -126,9 +127,9 @@ for i in range(nx):
         ld_dist_y = ld_y - curr_grid_y
         ld_dist_y2 = ld_dist_y*ld_dist_y
 
-        # Determine the set of loop detectors that lie within a circular region around the current grid point
+        # Determine the set of loop detectors that lie within a circular region around the current spatial grid point
         print('')
-        print('Analysing the grid point (' + str(i) + ', ' + str(j) + ') from a grid of size (' + str(nx) + ', ' + str(ny) + ')...')
+        print('Analysing the spatial grid point (' + str(i + 1) + ', ' + str(j + 1) + ') from a grid of size (' + str(nx) + ', ' + str(ny) + ')...')
         ld_selection = (ld_dist_x2 + ld_dist_y2) <= region_radius2
         nld_selection = numpy.count_nonzero(ld_selection)
         if nld_selection == 0:
@@ -143,7 +144,13 @@ for i in range(nx):
         # ANALYSE NETWORK FOR CONNECTED GROUPS OF ROADS - ONLY CONSIDER THE LARGEST CONNECTED GROUP (TOTAL ROAD LENGTH?) - REJECT LOOP DETECTORS THAT ARE NOT ON ROADS IN THIS LARGEST GROUP
         # RECORD NUMBER OF DISJOINT GROUPS OF ROADS
 
+
+        # CHECK IF THIS SET OF LOOP DETECTORS IS THE SAME AS THOSE ANALYSED IN THE PREVIOUS GRID POINT - IN WHICH CASE ADOPT PREVIOUS RESULTS FOR SPEED
+
         # AT THIS POINT CALL FUNCTION TO CONSTRUCT MFD FOR SET OF LOOP DETECTORS...
+        print('Constructing the MFD for the current spatial grid point...')
+        result = mfd_functions.construct_mfd(ld_locations_table[ld_selection])
+        print(result)
 
         # FIT THE MFD AND EXTRACT CRITICAL DENSITY ETC.
 
