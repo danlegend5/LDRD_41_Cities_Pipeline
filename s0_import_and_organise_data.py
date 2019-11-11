@@ -7,7 +7,7 @@ __author__ = 'Dan Bramich'
 # (and detector) while also standardising the entries. Note that no filtering of the data is performed
 # since the purpose of this script is simply to better organise and standardise the data before the data
 # processing and analysis begins. The data come from the publication "Understanding traffic capacity of
-# urban networks" by Loder et al. (2019).
+# urban networks" by Loder et al. (2019), except for the extra one year of data on Zurich covering 2018.
 
 # Imports
 import csv
@@ -244,6 +244,8 @@ with open(config.original_measurements_raw_file, mode = 'r') as csv_file:
     for row in csv_contents:
         city_name = row['city']                                                      # Notes: - Name of the city that hosts the loop detector the measurement was taken with.
                                                                                      #        - 41 cities with the same names as above.
+        if city_name == 'innsbruck': continue
+        if city_name == 'zurich': continue
         country_name = general_functions.get_country_name(city_name)
         detector_id = row['detid'].replace(' ', '_')                                 # Notes: - The ID of the loop detector the measurement was taken with.
         detector_id = detector_id.replace('.', '_')                                  #        - Spaces replaced with underscores.
@@ -258,12 +260,100 @@ with open(config.original_measurements_raw_file, mode = 'r') as csv_file:
         curr_output_file = os.path.join(curr_output_dir, 'measurements.raw.' + country_name + '.' + city_name + '.' + detector_id + '.csv')
         if not os.path.exists(curr_output_file):
             os.makedirs(curr_output_dir)
-            with open(curr_output_file, 'w') as curr_csv_file:
+            with open(curr_output_file, mode = 'w') as curr_csv_file:
                 writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
                 writer.writeheader()
                 writer.writerow(row)
         else:
-            with open(curr_output_file, 'a') as curr_csv_file:
+            with open(curr_output_file, mode = 'a') as curr_csv_file:
+                writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
+                writer.writerow(row)
+
+# Read in the loop detector measurements data file for Innsbruck, and write out the entries to data files
+# organised by city and detector ID
+print('Reading in and splitting the loop detector measurements data file (raw): ' + config.original_measurements_innsbruck_file)
+country_name = general_functions.get_country_name('innsbruck')
+with open(config.original_measurements_innsbruck_file, mode = 'r') as csv_file:
+    csv_contents = csv.DictReader(csv_file)
+    for row in csv_contents:
+        detector_id = row['detid'].replace(' ', '_')                                 # Notes: - The ID of the loop detector the measurement was taken with.
+        detector_id = detector_id.replace('.', '_')                                  #        - Spaces replaced with underscores.
+        detector_id = detector_id.replace('/', '_')                                  #        - Characters '.', '/', '[', ']', '(' and ')' replaced with underscores.
+        detector_id = detector_id.replace('[', '_')                                  #        - Underscores at the beginning and end of the ID string are removed.
+        detector_id = detector_id.replace(']', '_')                                  #        - The only characters that are present in the loop detector ID entries are:
+        detector_id = detector_id.replace('(', '_')                                  #          '_', '-', '+', '0', ..., '9', 'a', ..., 'z', 'A', ..., 'Z'
+        detector_id = detector_id.replace(')', '_')
+        if detector_id[0] == '_': detector_id = detector_id[1:]
+        if detector_id[-1] == '_': detector_id = detector_id[0:(len(detector_id) - 1)]
+        row['day'] = row['day'][6:10] + '-' + row['day'][3:5] + '-' + row['day'][0:2]
+        curr_output_dir = os.path.join(output_dir_ld_measurements_raw, country_name, 'innsbruck', detector_id)
+        curr_output_file = os.path.join(curr_output_dir, 'measurements.raw.' + country_name + '.innsbruck.' + detector_id + '.csv')
+        if not os.path.exists(curr_output_file):
+            os.makedirs(curr_output_dir)
+            with open(curr_output_file, mode = 'w') as curr_csv_file:
+                writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
+                writer.writeheader()
+                writer.writerow(row)
+        else:
+            with open(curr_output_file, mode = 'a') as curr_csv_file:
+                writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
+                writer.writerow(row)
+
+# Read in the loop detector measurements data files for Zurich, and write out the entries to data files
+# organised by city and detector ID
+print('Reading in and splitting the loop detector measurements data file (raw): ' + config.original_measurements_zurich_file1)
+country_name = general_functions.get_country_name('zurich')
+with open(config.original_measurements_zurich_file1, mode = 'r') as csv_file:
+    csv_contents = csv.DictReader(csv_file)
+    for row in csv_contents:
+        detector_id = row['detid'].replace(' ', '_')                                 # Notes: - The ID of the loop detector the measurement was taken with.
+        detector_id = detector_id.replace('.', '_')                                  #        - Spaces replaced with underscores.
+        detector_id = detector_id.replace('/', '_')                                  #        - Characters '.', '/', '[', ']', '(' and ')' replaced with underscores.
+        detector_id = detector_id.replace('[', '_')                                  #        - Underscores at the beginning and end of the ID string are removed.
+        detector_id = detector_id.replace(']', '_')                                  #        - The only characters that are present in the loop detector ID entries are:
+        detector_id = detector_id.replace('(', '_')                                  #          '_', '-', '+', '0', ..., '9', 'a', ..., 'z', 'A', ..., 'Z'
+        detector_id = detector_id.replace(')', '_')
+        if detector_id[0] == '_': detector_id = detector_id[1:]
+        if detector_id[-1] == '_': detector_id = detector_id[0:(len(detector_id) - 1)]
+        row['day'] = row['day'][6:10] + '-' + row['day'][3:5] + '-' + row['day'][0:2]
+        row['speed'] = 'NA'
+        curr_output_dir = os.path.join(output_dir_ld_measurements_raw, country_name, 'zurich', detector_id)
+        curr_output_file = os.path.join(curr_output_dir, 'measurements.raw.' + country_name + '.zurich.' + detector_id + '.csv')
+        if not os.path.exists(curr_output_file):
+            os.makedirs(curr_output_dir)
+            with open(curr_output_file, mode = 'w') as curr_csv_file:
+                writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
+                writer.writeheader()
+                writer.writerow(row)
+        else:
+            with open(curr_output_file, mode = 'a') as curr_csv_file:
+                writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
+                writer.writerow(row)
+print('Reading in and splitting the loop detector measurements data file (raw): ' + config.original_measurements_zurich_file2)
+with open(config.original_measurements_zurich_file2, mode = 'r') as csv_file:
+    csv_contents = csv.DictReader(csv_file)
+    for row in csv_contents:
+        detector_id = row['detid'].replace(' ', '_')                                 # Notes: - The ID of the loop detector the measurement was taken with.
+        detector_id = detector_id.replace('.', '_')                                  #        - Spaces replaced with underscores.
+        detector_id = detector_id.replace('/', '_')                                  #        - Characters '.', '/', '[', ']', '(' and ')' replaced with underscores.
+        detector_id = detector_id.replace('[', '_')                                  #        - Underscores at the beginning and end of the ID string are removed.
+        detector_id = detector_id.replace(']', '_')                                  #        - The only characters that are present in the loop detector ID entries are:
+        detector_id = detector_id.replace('(', '_')                                  #          '_', '-', '+', '0', ..., '9', 'a', ..., 'z', 'A', ..., 'Z'
+        detector_id = detector_id.replace(')', '_')
+        if detector_id[0] == '_': detector_id = detector_id[1:]
+        if detector_id[-1] == '_': detector_id = detector_id[0:(len(detector_id) - 1)]
+        row['day'] = row['day'][6:10] + '-' + row['day'][3:5] + '-' + row['day'][0:2]
+        row['speed'] = 'NA'
+        curr_output_dir = os.path.join(output_dir_ld_measurements_raw, country_name, 'zurich', detector_id)
+        curr_output_file = os.path.join(curr_output_dir, 'measurements.raw.' + country_name + '.zurich.' + detector_id + '.csv')
+        if not os.path.exists(curr_output_file):
+            os.makedirs(curr_output_dir)
+            with open(curr_output_file, mode = 'w') as curr_csv_file:
+                writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
+                writer.writeheader()
+                writer.writerow(row)
+        else:
+            with open(curr_output_file, mode = 'a') as curr_csv_file:
                 writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
                 writer.writerow(row)
 
@@ -301,7 +391,7 @@ for file in file_list:
         if line_bits[0] == 'NA':                                                                 # Notes: - Date on which the measurement was taken (YYYY-MM-DD local time).
             ld_measurements_table['DATE'][i] = '0000-00-00'                                      #        - Entries equal to 'NA' are replaced with the value '0000-00-00'.
         else:                                                                                    #        - Minimum: '2008-05-16'
-            ld_measurements_table['DATE'][i] = line_bits[0]                                      #        - Maximum: '2018-02-26'
+            ld_measurements_table['DATE'][i] = line_bits[0]                                      #        - Maximum: '2018-12-31'
         if line_bits[1] == 'NA':                                                                 # Notes: - Time at the start of the measurement interval (seconds after midnight
             ld_measurements_table['INTERVAL_START'][i] = numpy.int32(-1)                         #          on the corresponding date - local time).
         else:                                                                                    #        - Entries equal to 'NA' are replaced with the value '-1'.
@@ -313,8 +403,8 @@ for file in file_list:
             ld_measurements_table['FLOW'][i] = numpy.float64(-1.0)                               #          measurement interval, scaled to 1 hour.
         else:                                                                                    #        - Entries equal to 'NA' are replaced with the value '-1.0'.
             if numpy.float64(line_bits[2]) < 0.0:                                                #        - Entries with negative values are replaced with the value '-1.0'.
-                ld_measurements_table['FLOW'][i] = numpy.float64(-1.0)                           #        - Minimum: 0.0
-            else:                                                                                #        - Maximum: 902403.0
+                ld_measurements_table['FLOW'][i] = numpy.float64(-1.0)
+            else:
                 ld_measurements_table['FLOW'][i] = numpy.float64(line_bits[2])
         if line_bits[3] == 'Inf':                                                                # Notes: - Fraction of time in the measurement interval that the loop detector
             ld_measurements_table['OCCUPANCY'][i] = numpy.float64(-1.0)                          #          is occupied by a vehicle.
@@ -333,13 +423,13 @@ for file in file_list:
             ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(1)
         else:
             ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(line_bits[4])
-        if line_bits[5] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (???UNITS???).
+        if line_bits[5] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (??UNITS??).
             ld_measurements_table['SPEED'][i] = numpy.float64(-1.0)                              #        - Some cities provide average speed measurements instead of occupancy.
         else:                                                                                    #          Otherwise, average speeds are calculated from speed = flow / density.
             if numpy.float64(line_bits[5]) < 0.0:                                                #        - Entries equal to 'NA' are replaced with the value '-1.0'.
                 ld_measurements_table['SPEED'][i] = numpy.float64(-1.0)                          #        - Entries with negative values are replaced with the value '-1.0'.
-            else:                                                                                #        - Minimum: 0.0
-                ld_measurements_table['SPEED'][i] = numpy.float64(line_bits[5])                  #        - Maximum: 253.0
+            else:
+                ld_measurements_table['SPEED'][i] = numpy.float64(line_bits[5])
 
     # Sort the loop detector measurements data table by "DATE" followed by "INTERVAL_START"
     ld_measurements_table = ld_measurements_table[numpy.argsort(ld_measurements_table, order = ['DATE', 'INTERVAL_START'])]
@@ -375,6 +465,8 @@ with open(config.original_measurements_arima_file, mode = 'r') as csv_file:
     for row in csv_contents:
         city_name = row['city']                                                      # Notes: - Name of the city that hosts the loop detector the measurement was taken with.
                                                                                      #        - 41 cities with the same names as above.
+        if city_name == 'innsbruck': continue
+        if city_name == 'zurich': continue
         country_name = general_functions.get_country_name(city_name)
         detector_id = row['detid'].replace(' ', '_')                                 # Notes: - The ID of the loop detector the measurement was taken with.
         detector_id = detector_id.replace('.', '_')                                  #        - Spaces replaced with underscores.
@@ -389,12 +481,103 @@ with open(config.original_measurements_arima_file, mode = 'r') as csv_file:
         curr_output_file = os.path.join(curr_output_dir, 'measurements.ARIMA.' + country_name + '.' + city_name + '.' + detector_id + '.csv')
         if not os.path.exists(curr_output_file):
             os.makedirs(curr_output_dir)
-            with open(curr_output_file, 'w') as curr_csv_file:
+            with open(curr_output_file, mode = 'w') as curr_csv_file:
                 writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
                 writer.writeheader()
                 writer.writerow(row)
         else:
-            with open(curr_output_file, 'a') as curr_csv_file:
+            with open(curr_output_file, mode = 'a') as curr_csv_file:
+                writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
+                writer.writerow(row)
+
+# Read in the loop detector measurements data file for Innsbruck, and write out the entries to data files
+# organised by city and detector ID
+print('Reading in and splitting the loop detector measurements data file (ARIMA): ' + config.original_measurements_innsbruck_file)
+country_name = general_functions.get_country_name('innsbruck')
+with open(config.original_measurements_innsbruck_file, mode = 'r') as csv_file:
+    csv_contents = csv.DictReader(csv_file)
+    for row in csv_contents:
+        detector_id = row['detid'].replace(' ', '_')                                 # Notes: - The ID of the loop detector the measurement was taken with.
+        detector_id = detector_id.replace('.', '_')                                  #        - Spaces replaced with underscores.
+        detector_id = detector_id.replace('/', '_')                                  #        - Characters '.', '/', '[', ']', '(' and ')' replaced with underscores.
+        detector_id = detector_id.replace('[', '_')                                  #        - Underscores at the beginning and end of the ID string are removed.
+        detector_id = detector_id.replace(']', '_')                                  #        - The only characters that are present in the loop detector ID entries are:
+        detector_id = detector_id.replace('(', '_')                                  #          '_', '-', '+', '0', ..., '9', 'a', ..., 'z', 'A', ..., 'Z'
+        detector_id = detector_id.replace(')', '_')
+        if detector_id[0] == '_': detector_id = detector_id[1:]
+        if detector_id[-1] == '_': detector_id = detector_id[0:(len(detector_id) - 1)]
+        row['day'] = row['day'][6:10] + '-' + row['day'][3:5] + '-' + row['day'][0:2]
+        row['arima.occ'] = 'NA'
+        curr_output_dir = os.path.join(output_dir_ld_measurements_arima, country_name, 'innsbruck', detector_id)
+        curr_output_file = os.path.join(curr_output_dir, 'measurements.ARIMA.' + country_name + '.innsbruck.' + detector_id + '.csv')
+        if not os.path.exists(curr_output_file):
+            os.makedirs(curr_output_dir)
+            with open(curr_output_file, mode = 'w') as curr_csv_file:
+                writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
+                writer.writeheader()
+                writer.writerow(row)
+        else:
+            with open(curr_output_file, mode = 'a') as curr_csv_file:
+                writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
+                writer.writerow(row)
+
+# Read in the loop detector measurements data files for Zurich, and write out the entries to data files
+# organised by city and detector ID
+print('Reading in and splitting the loop detector measurements data file (ARIMA): ' + config.original_measurements_zurich_file1)
+country_name = general_functions.get_country_name('zurich')
+with open(config.original_measurements_zurich_file1, mode = 'r') as csv_file:
+    csv_contents = csv.DictReader(csv_file)
+    for row in csv_contents:
+        detector_id = row['detid'].replace(' ', '_')                                 # Notes: - The ID of the loop detector the measurement was taken with.
+        detector_id = detector_id.replace('.', '_')                                  #        - Spaces replaced with underscores.
+        detector_id = detector_id.replace('/', '_')                                  #        - Characters '.', '/', '[', ']', '(' and ')' replaced with underscores.
+        detector_id = detector_id.replace('[', '_')                                  #        - Underscores at the beginning and end of the ID string are removed.
+        detector_id = detector_id.replace(']', '_')                                  #        - The only characters that are present in the loop detector ID entries are:
+        detector_id = detector_id.replace('(', '_')                                  #          '_', '-', '+', '0', ..., '9', 'a', ..., 'z', 'A', ..., 'Z'
+        detector_id = detector_id.replace(')', '_')
+        if detector_id[0] == '_': detector_id = detector_id[1:]
+        if detector_id[-1] == '_': detector_id = detector_id[0:(len(detector_id) - 1)]
+        row['day'] = row['day'][6:10] + '-' + row['day'][3:5] + '-' + row['day'][0:2]
+        row['speed'] = 'NA'
+        row['arima.speed'] = 'NA'
+        curr_output_dir = os.path.join(output_dir_ld_measurements_arima, country_name, 'zurich', detector_id)
+        curr_output_file = os.path.join(curr_output_dir, 'measurements.ARIMA.' + country_name + '.zurich.' + detector_id + '.csv')
+        if not os.path.exists(curr_output_file):
+            os.makedirs(curr_output_dir)
+            with open(curr_output_file, mode = 'w') as curr_csv_file:
+                writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
+                writer.writeheader()
+                writer.writerow(row)
+        else:
+            with open(curr_output_file, mode = 'a') as curr_csv_file:
+                writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
+                writer.writerow(row)
+print('Reading in and splitting the loop detector measurements data file (ARIMA): ' + config.original_measurements_zurich_file2)
+with open(config.original_measurements_zurich_file2, mode = 'r') as csv_file:
+    csv_contents = csv.DictReader(csv_file)
+    for row in csv_contents:
+        detector_id = row['detid'].replace(' ', '_')                                 # Notes: - The ID of the loop detector the measurement was taken with.
+        detector_id = detector_id.replace('.', '_')                                  #        - Spaces replaced with underscores.
+        detector_id = detector_id.replace('/', '_')                                  #        - Characters '.', '/', '[', ']', '(' and ')' replaced with underscores.
+        detector_id = detector_id.replace('[', '_')                                  #        - Underscores at the beginning and end of the ID string are removed.
+        detector_id = detector_id.replace(']', '_')                                  #        - The only characters that are present in the loop detector ID entries are:
+        detector_id = detector_id.replace('(', '_')                                  #          '_', '-', '+', '0', ..., '9', 'a', ..., 'z', 'A', ..., 'Z'
+        detector_id = detector_id.replace(')', '_')
+        if detector_id[0] == '_': detector_id = detector_id[1:]
+        if detector_id[-1] == '_': detector_id = detector_id[0:(len(detector_id) - 1)]
+        row['day'] = row['day'][6:10] + '-' + row['day'][3:5] + '-' + row['day'][0:2]
+        row['speed'] = 'NA'
+        row['arima.speed'] = 'NA'
+        curr_output_dir = os.path.join(output_dir_ld_measurements_arima, country_name, 'zurich', detector_id)
+        curr_output_file = os.path.join(curr_output_dir, 'measurements.ARIMA.' + country_name + '.zurich.' + detector_id + '.csv')
+        if not os.path.exists(curr_output_file):
+            os.makedirs(curr_output_dir)
+            with open(curr_output_file, mode = 'w') as curr_csv_file:
+                writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
+                writer.writeheader()
+                writer.writerow(row)
+        else:
+            with open(curr_output_file, mode = 'a') as curr_csv_file:
                 writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
                 writer.writerow(row)
 
@@ -435,7 +618,7 @@ for file in file_list:
         if line_bits[0] == 'NA':                                                                 # Notes: - Date on which the measurement was taken (YYYY-MM-DD local time).
             ld_measurements_table['DATE'][i] = '0000-00-00'                                      #        - Entries equal to 'NA' are replaced with the value '0000-00-00'.
         else:                                                                                    #        - Minimum: '2008-05-16'
-            ld_measurements_table['DATE'][i] = line_bits[0]                                      #        - Maximum: '2018-02-26'
+            ld_measurements_table['DATE'][i] = line_bits[0]                                      #        - Maximum: '2018-12-31'
         if line_bits[1] == 'NA':                                                                 # Notes: - Time at the start of the measurement interval (seconds after midnight
             ld_measurements_table['INTERVAL_START'][i] = numpy.int32(-1)                         #          on the corresponding date - local time).
         else:                                                                                    #        - Entries equal to 'NA' are replaced with the value '-1'.
@@ -447,8 +630,8 @@ for file in file_list:
             ld_measurements_table['FLOW'][i] = numpy.float64(-1.0)                               #          measurement interval, scaled to 1 hour.
         else:                                                                                    #        - Entries equal to 'NA' are replaced with the value '-1.0'.
             if numpy.float64(line_bits[2]) < 0.0:                                                #        - Entries with negative values are replaced with the value '-1.0'.
-                ld_measurements_table['FLOW'][i] = numpy.float64(-1.0)                           #        - Minimum: 0.0
-            else:                                                                                #        - Maximum: 902403.0
+                ld_measurements_table['FLOW'][i] = numpy.float64(-1.0)
+            else:
                 ld_measurements_table['FLOW'][i] = numpy.float64(line_bits[2])
         if line_bits[3] == 'Inf':                                                                # Notes: - Fraction of time in the measurement interval that the loop detector
             ld_measurements_table['OCCUPANCY'][i] = numpy.float64(-1.0)                          #          is occupied by a vehicle.
@@ -467,19 +650,19 @@ for file in file_list:
             ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(1)
         else:
             ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(line_bits[4])
-        if line_bits[5] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (???UNITS???).
+        if line_bits[5] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (??UNITS??).
             ld_measurements_table['SPEED'][i] = numpy.float64(-1.0)                              #        - Some cities provide average speed measurements instead of occupancy.
         else:                                                                                    #          Otherwise, average speeds are calculated from speed = flow / density.
             if numpy.float64(line_bits[5]) < 0.0:                                                #        - Entries equal to 'NA' are replaced with the value '-1.0'.
                 ld_measurements_table['SPEED'][i] = numpy.float64(-1.0)                          #        - Entries with negative values are replaced with the value '-1.0'.
-            else:                                                                                #        - Minimum: 0.0
-                ld_measurements_table['SPEED'][i] = numpy.float64(line_bits[5])                  #        - Maximum: 253.0
+            else:
+                ld_measurements_table['SPEED'][i] = numpy.float64(line_bits[5])
         if line_bits[6] == 'NA':                                                                 # Notes: - Flow measurement (veh/hour; ARIMA smoothed). This is the vehicle count in
             ld_measurements_table['ARIMA_FLOW'][i] = numpy.float64(-1.0)                         #          the measurement interval, scaled to 1 hour.
         else:                                                                                    #        - Entries equal to 'NA' are replaced with the value '-1.0'.
             if numpy.float64(line_bits[6]) < 0.0:                                                #        - Entries with negative values are replaced with the value '-1.0'.
-                ld_measurements_table['ARIMA_FLOW'][i] = numpy.float64(-1.0)                     #        - Minimum: 0.0
-            else:                                                                                #        - Maximum: 899416.727
+                ld_measurements_table['ARIMA_FLOW'][i] = numpy.float64(-1.0)
+            else:
                 ld_measurements_table['ARIMA_FLOW'][i] = numpy.float64(line_bits[6])
         if line_bits[7] == 'Inf':                                                                # Notes: - Fraction of time in the measurement interval that the loop detector
             ld_measurements_table['ARIMA_OCCUPANCY'][i] = numpy.float64(-1.0)                    #          is occupied by a vehicle (ARIMA smoothed).
@@ -492,13 +675,13 @@ for file in file_list:
                 ld_measurements_table['ARIMA_OCCUPANCY'][i] = numpy.float64(-1.0)                #        - Q: How is vehicle length accounted/corrected for?
             else:                                                                                #          A: It's not done directly. It is calibrated via the free flow branch
                 ld_measurements_table['ARIMA_OCCUPANCY'][i] = numpy.float64(line_bits[7])        #             of the FD and the MFD.
-        if line_bits[8] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (???UNITS???; ARIMA smoothed).
+        if line_bits[8] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (??UNITS??; ARIMA smoothed).
             ld_measurements_table['ARIMA_SPEED'][i] = numpy.float64(-1.0)                        #        - Some cities provide average speed measurements instead of occupancy.
         else:                                                                                    #          Otherwise, average speeds are calculated from speed = flow / density.
             if numpy.float64(line_bits[8]) < 0.0:                                                #        - Entries equal to 'NA' are replaced with the value '-1.0'.
                 ld_measurements_table['ARIMA_SPEED'][i] = numpy.float64(-1.0)                    #        - Entries with negative values are replaced with the value '-1.0'.
-            else:                                                                                #        - Minimum: 0.0
-                ld_measurements_table['ARIMA_SPEED'][i] = numpy.float64(line_bits[8])            #        - Maximum: 206.024
+            else:
+                ld_measurements_table['ARIMA_SPEED'][i] = numpy.float64(line_bits[8])
 
     # Sort the loop detector measurements data table by "DATE" followed by "INTERVAL_START"
     ld_measurements_table = ld_measurements_table[numpy.argsort(ld_measurements_table, order = ['DATE', 'INTERVAL_START'])]
