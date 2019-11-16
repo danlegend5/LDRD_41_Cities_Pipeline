@@ -54,10 +54,10 @@ print('Initialising the text file that will be used to contain the summary stati
 with open(summary_stats_of_measurements_per_city_detector_file, mode = 'w') as ssfile:
     ssfile.write('# Country : City : Detector ID : No. Of LD Measurements (raw) : No. Of Good LD Measurements (raw) : First Time Stamp (raw) : Last Time Stamp (raw) : No. Of Dates (raw) : ' + \
                  'Interval Lengths (s; raw) : Med. Interval Length (s; raw) : Min. Flow (veh/h; raw) : Med. Flow (veh/h; raw) : Max. Flow (veh/h; raw) : Min. Occupancy (raw) : ' + \
-                 'Med. Occupancy (raw) : Max. Occupancy (raw) : Min. Average-Speed (???; raw) : Med. Average-Speed (???; raw) : Max. Average-Speed (???; raw) : No. Of LD Measurements (ARIMA) : ' + \
+                 'Med. Occupancy (raw) : Max. Occupancy (raw) : Min. Average-Speed (????; raw) : Med. Average-Speed (????; raw) : Max. Average-Speed (????; raw) : No. Of LD Measurements (ARIMA) : ' + \
                  'No. Of Good LD Measurements (ARIMA) : First Time Stamp (ARIMA) : Last Time Stamp (ARIMA) : No. Of Dates (ARIMA) : Min. Flow (veh/h; ARIMA) : Med. Flow (veh/h; ARIMA) : ' + \
-                 'Max. Flow (veh/h; ARIMA) : Min. Occupancy (ARIMA) : Med. Occupancy (ARIMA) : Max. Occupancy (ARIMA) : Min. Average-Speed (???; ARIMA) : Med. Average-Speed (???; ARIMA) : ' + \
-                 'Max. Average-Speed (???; ARIMA)\n')
+                 'Max. Flow (veh/h; ARIMA) : Min. Occupancy (ARIMA) : Med. Occupancy (ARIMA) : Max. Occupancy (ARIMA) : Min. Average-Speed (????; ARIMA) : Med. Average-Speed (????; ARIMA) : ' + \
+                 'Max. Average-Speed (????; ARIMA)\n')
 
 # Determine the list of loop detector locations data files
 print('')
@@ -167,8 +167,7 @@ for file in file_list:
         ld_measurements_file_raw = os.path.join(config.output_dir, 's0.Loop.Detector.Measurements.Raw', country_name, city_name, ld_locations_table['DETECTOR_ID'][i], ld_measurements_file_raw)
 
         # If the corresponding loop detector measurements data file (raw) does not exist, then reject the current
-        # loop detector, and move on to the next loop detector (N.B: The only case is for city "hamburg" and
-        # "DETECTOR_ID = K813D1_1"; 1 loop detector rejected in total)
+        # loop detector, and move on to the next loop detector (127 loop detectors rejected in total)
         if not os.path.exists(ld_measurements_file_raw):
             selection[i] = False
             nrejected_reason1 += 1
@@ -190,11 +189,11 @@ for file in file_list:
         if nld_measurements_raw < nld_measurements_raw_old: ld_measurements_table_raw = ld_measurements_table_raw[tmp_selection]
 
         # Ensure that the loop detector measurements (raw) with bad "FLOW", or bad "OCCUPANCY", values are
-        # flagged with "ERROR_FLAG = 1" (70,761,739 loop detector measurements are flagged in total)
+        # flagged with "ERROR_FLAG = 1" (90,366,062 loop detector measurements are flagged in total)
         ld_measurements_table_raw['ERROR_FLAG'][numpy.logical_or(ld_measurements_table_raw['FLOW'] == -1.0, ld_measurements_table_raw['OCCUPANCY'] == -1.0)] = 1
 
         # If all of the loop detector measurements (raw) for the current loop detector are flagged with
-        # "ERROR_FLAG = 1", then reject the current loop detector, and move on to the next loop detector (7285
+        # "ERROR_FLAG = 1", then reject the current loop detector, and move on to the next loop detector (6,331
         # loop detectors rejected in total)
         if numpy.count_nonzero(ld_measurements_table_raw['ERROR_FLAG']) == nld_measurements_raw:
             selection[i] = False
@@ -271,7 +270,7 @@ for file in file_list:
         if nld_measurements_arima < nld_measurements_arima_old: ld_measurements_table_arima = ld_measurements_table_arima[tmp_selection]
 
         # Ensure that the loop detector measurements (ARIMA) with bad "FLOW", or bad "OCCUPANCY", or bad
-        # "ARIMA_FLOW", or bad "ARIMA_OCCUPANCY" values are flagged with "ERROR_FLAG = 1" (15,121,256 loop
+        # "ARIMA_FLOW", or bad "ARIMA_OCCUPANCY" values are flagged with "ERROR_FLAG = 1" (26,569,115 loop
         # detector measurements are flagged in total)
         tmp_selection = numpy.logical_or(ld_measurements_table_arima['FLOW'] == -1.0, ld_measurements_table_arima['OCCUPANCY'] == -1.0)
         tmp_selection = numpy.logical_or(tmp_selection, ld_measurements_table_arima['ARIMA_FLOW'] == -1.0)
