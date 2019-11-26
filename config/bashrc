@@ -1,4 +1,4 @@
 # Pipeline environment settings
 
 # Setup python path
-export PYTHONPATH="/data/dmb20/Loop.Detector.Data.Analysis.MFD.Project.1:$PYTHONPATH"
+export PYTHONPATH="/data/dmb20/Loop.Detector.Reformatted.Data.41.Cities:$PYTHONPATH"

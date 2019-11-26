@@ -1,5 +1,18 @@
 __author__ = 'Dan Bramich'
 
+# Imports
+import numpy
+from astropy.time import Time
+from astropy.time import TimeDelta
+
+
+# Convert a date string of the format YYYY-MM-DDTSSSSS, where SSSSS is the seconds after midnight, to a time
+# object
+def convert_time_stamp_to_time_object(time_stamp):
+    time_isot = Time(time_stamp[0:11] + '00:00:00.000', format = 'isot', scale = 'tai')
+    time_secs = TimeDelta(numpy.int32(time_stamp[11:16]), format = 'sec')
+    return time_isot + time_secs
+
 
 # Count the number of lines in a text file
 def count_file_lines(filename):

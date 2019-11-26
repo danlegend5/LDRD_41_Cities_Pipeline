@@ -1,0 +1,62 @@
+Open Street Maps (OSM) networks have problems and inconsistencies because they are built in an open source way by
+many users. While they are an exceptionally useful resource, they need some pre-processing in order to standardise
+them and "neaten them up". We use the SUMO software to do this.
+
+
+Method:
+-------
+
+- Make sure SUMO is installed (https://sumo.dlr.de/index.html), and that it can run with:
+
+  sumo --help
+
+- Go to https://extract.bbbike.org/ and fill out the form on the left:
+
+  Format = OSM XML 7z (xz)
+  Name of area to extract = Any name (not important)
+  Your email address = Anything (not important)
+
+  Move the map to the desired location and then click "here" to create the bounding box. Adjust the box to select
+  the region on the map that you want and click "Extract". This will take you to a new page where you should click
+  on the "server status" link to get to the map download page. Click on "Enable auto refresh" and wait for your
+  map to be created. Once it is ready, copy the link location for the download, and use wget to download the file,
+  e.g.:
+
+  wget https://download.bbbike.org/osm/extract/planet_12.672,52.463_12.85,52.54.osm.xz
+
+- Unzip the ".osm.xz" file using:
+
+  unxz planet_12.672,52.463_12.85,52.54.osm.xz
+
+- Ensure that the file "osm.netccfg" is present in the same directory as the ".osm" file. Edit the following 
+  parameters in this file:
+
+  osm-files = The name of the ".osm" file that you downloaded.
+  plain-output-prefix = The desired prefix for the output files.
+
+  The only other parameter that you may want to modify is:
+
+  junctions.join-dist = The radius (or diameter?; m) to be used to merge multiple nodes at a junction.
+
+  Note that the parameter "type-files" is set to "standard.typ.xml". This file should also be present in the same
+  directory as the ".osm" file, and it contains the default values to be used when the ".osm" file is missing
+  information for certain links/nodes.
+
+- Run the "netconvert" program from SUMO on the "osm.netccfg" file:
+
+  netconvert -c osm.netccfg
+
+  If it finishes correctly, then the last two lines of the output should be:
+
+  Writing network... done (91ms).
+  Success.
+
+  The run will generate the following output files (<PREFIX> is the prefix for the output files set in the
+  previous step):
+
+  <PREFIX>.con.xml
+  <PREFIX>.edg.xml
+  <PREFIX>.nod.xml
+  <PREFIX>.tll.xml
+  <PREFIX>.typ.xml
+  osm.net.xml

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 04/02/19 16:45:16 by Eclipse SUMO netconvert Version 1.1.0
+-->
+
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/netconvertConfiguration.xsd">
+
+    <input>
+        <type-files value="standard.typ.xml"/>
+        <osm-files value="city.osm"/>
+    </input>
+
+    <output>
+        <output-file value="osm.net.xml"/>
+        <plain-output-prefix value="NewYork"/>
+        <output.street-names value="false"/>
+        <output.original-names value="true"/>
+    </output>
+
+    <projection>
+        <proj.plain-geo value="true"/>
+    </projection>
+
+    <processing>
+        <plain.extend-edge-shape value="true"/>
+        <geometry.remove value="true"/>
+        <roundabouts.guess value="true"/>
+        <edges.join value="true"/>
+	<geometry.max-segment-length value="200"/>
+	<geometry.min-radius.fix value="true"/>
+    </processing>
+
+    <tls_building>	
+	<tls.discard-loaded value="false"/>
+        <tls.discard-simple value="false"/>
+        <tls.join value="true"/>
+	<tls.guess value="false"/>
+        <tls.uncontrolled-within value="true"/>
+        <tls.guess-signals value="true"/>
+        <tls.yellow.time value="1"/>
+        <tls.default-type value="actuated"/>
+    </tls_building>
+
+    <ramp_guessing>
+        <ramps.guess value="true"/>
+    </ramp_guessing>
+
+    <edge_removal>
+        <keep-edges.by-type value="highway.living_street,highway.motorway,highway.motorway_link,highway.primary,highway.primary_link,highway.residential,highway.secondary,highway.secondary_link,highway.service,highway.tertiary,highway.tertiary_link,highway.trunk,highway.trunk_link,highway.unclassified"/>
+        <remove-edges.isolated value="true"/>
+    </edge_removal>
+
+    <junctions>
+        <no-internal-links value="true"/>
+	<no-turnarounds.tls value="true"/>
+	<no-turnarounds.geometry value="true"/>
+        <junctions.join value="true"/>
+	<junctions.join-dist value="20"/>
+        <junctions.join-turns value="true"/>
+	<rectangular-lane-cut value="false"/>
+    </junctions>
+
+    <format>
+	<osm.all-attributes value="true"/>
+    </format>
+    
+    <report>
+        <verbose value="true"/>
+	<xml-validation value="never"/>
+    </report>
+
+</configuration>
