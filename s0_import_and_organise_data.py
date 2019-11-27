@@ -7,7 +7,8 @@ __author__ = 'Dan Bramich'
 # (and detector) while also standardising the entries. Note that no filtering of the data is performed
 # since the purpose of this script is simply to better organise and standardise the data before the data
 # processing and analysis begins. The data come from the publication "Understanding traffic capacity of
-# urban networks" by Loder et al. (2019), except for the extra one year of data on Zurich covering 2018.
+# urban networks" by Loder et al. (2019), except for the extra one year of data on Zurich covering 2017
+# to 2018.
 
 # Imports
 import csv
@@ -423,7 +424,7 @@ for file in file_list:
             ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(1)
         else:
             ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(line_bits[4])
-        if line_bits[5] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (??UNITS??).
+        if line_bits[5] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (km/h).
             ld_measurements_table['SPEED'][i] = numpy.float64(-1.0)                              #        - Some cities provide average speed measurements instead of occupancy.
         else:                                                                                    #          Otherwise, average speeds are calculated from speed = flow / density.
             if numpy.float64(line_bits[5]) < 0.0:                                                #        - Entries equal to 'NA' are replaced with the value '-1.0'.
@@ -650,7 +651,7 @@ for file in file_list:
             ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(1)
         else:
             ld_measurements_table['ERROR_FLAG'][i] = numpy.int32(line_bits[4])
-        if line_bits[5] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (??UNITS??).
+        if line_bits[5] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (km/h).
             ld_measurements_table['SPEED'][i] = numpy.float64(-1.0)                              #        - Some cities provide average speed measurements instead of occupancy.
         else:                                                                                    #          Otherwise, average speeds are calculated from speed = flow / density.
             if numpy.float64(line_bits[5]) < 0.0:                                                #        - Entries equal to 'NA' are replaced with the value '-1.0'.
@@ -675,7 +676,7 @@ for file in file_list:
                 ld_measurements_table['ARIMA_OCCUPANCY'][i] = numpy.float64(-1.0)                #        - Q: How is vehicle length accounted/corrected for?
             else:                                                                                #          A: It's not done directly. It is calibrated via the free flow branch
                 ld_measurements_table['ARIMA_OCCUPANCY'][i] = numpy.float64(line_bits[7])        #             of the FD and the MFD.
-        if line_bits[8] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (??UNITS??; ARIMA smoothed).
+        if line_bits[8] == 'NA':                                                                 # Notes: - Average vehicle speed in the measurement interval (km/h; ARIMA smoothed).
             ld_measurements_table['ARIMA_SPEED'][i] = numpy.float64(-1.0)                        #        - Some cities provide average speed measurements instead of occupancy.
         else:                                                                                    #          Otherwise, average speeds are calculated from speed = flow / density.
             if numpy.float64(line_bits[8]) < 0.0:                                                #        - Entries equal to 'NA' are replaced with the value '-1.0'.
