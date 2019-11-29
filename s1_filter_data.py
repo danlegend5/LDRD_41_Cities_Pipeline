@@ -5,10 +5,32 @@ __author__ = 'Dan Bramich'
 # This script filters out bad/useless data from the reorganised data on the loop detectors and the traffic
 # measurements created by stage 0. The script also further reorganises the data based on the fact that some
 # cities only provide flow and occupancy measurements, while others only provide flow and speed measurements.
+#
+# N.B: The source of the "detector" measurements for each city is listed below (data provenance). Data for a
+#      city come from one of three possible sources:
+#
+#      (i) Loop detectors => Provide flow and occupancy measurements, but no speed measurements.
+#
+#      (ii) Loop detectors measuring speed => Provide flow and speed measurements, but no (useful) occupancy
+#                                             measurements.
+#
+#      (iii) Loop detectors and bluetooth => Loop detectors provide flow measurements, while bluetooth
+#                                            provides speed measurements, but there are no (useful) occupancy
+#                                            measurements.
+#
+#      The cities in group (i) are: augsburg, basel, bern, bordeaux, bremen, cagliari, constance, darmstadt,
+#                                   duisburg, essen, frankfurt, graz, hamburg, kassel, london, losangeles,
+#                                   luzern, madrid, marseille, munich, paris, santander, speyer, strasbourg,
+#                                   stuttgart, taipeh, tokyo, toronto, toulouse, vilnius, wolfsburg, zurich
+#
+#      The cities in group (ii) are: birmingham, bolton, innsbruck, manchester, rotterdam, torino
+#
+#      The cities in group (iii) are: groningen, melbourne, utrecht
 
 
 ####
 # melbourne - fully rejected because any specific detector either has good flow measurements or good speed measurements, but not both
+# utrecht - fully rejected because it only has flow
 ####
 
 
