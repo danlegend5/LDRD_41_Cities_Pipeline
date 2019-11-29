@@ -3,7 +3,14 @@
 __author__ = 'Dan Bramich'
 
 # This script filters out bad/useless data from the reorganised data on the loop detectors and the traffic
-# measurements created by stage 0.
+# measurements created by stage 0. The script also further reorganises the data based on the fact that some
+# cities only provide flow and occupancy measurements, while others only provide flow and speed measurements.
+
+
+####
+# melbourne - fully rejected because any specific detector either has good flow measurements or good speed measurements, but not both
+####
+
 
 # Imports
 import glob
@@ -11,7 +18,7 @@ import numpy
 import os
 import shutil
 from astropy.table import Table
-from LDDA_MFD_Project1_Pipeline.config import config
+from LDRD_41_Cities_Pipeline.config import config
 
 # Create the output directory for the loop detector locations data tables
 output_dir_ld_locations = os.path.join(config.output_dir, 's1.Loop.Detector.Locations')
@@ -54,10 +61,10 @@ print('Initialising the text file that will be used to contain the summary stati
 with open(summary_stats_of_measurements_per_city_detector_file, mode = 'w') as ssfile:
     ssfile.write('# Country : City : Detector ID : No. Of LD Measurements (raw) : No. Of Good LD Measurements (raw) : First Time Stamp (raw) : Last Time Stamp (raw) : No. Of Dates (raw) : ' + \
                  'Interval Lengths (s; raw) : Med. Interval Length (s; raw) : Min. Flow (veh/h; raw) : Med. Flow (veh/h; raw) : Max. Flow (veh/h; raw) : Min. Occupancy (raw) : ' + \
-                 'Med. Occupancy (raw) : Max. Occupancy (raw) : Min. Average-Speed (????; raw) : Med. Average-Speed (????; raw) : Max. Average-Speed (????; raw) : No. Of LD Measurements (ARIMA) : ' + \
+                 'Med. Occupancy (raw) : Max. Occupancy (raw) : Min. Average-Speed (km/h; raw) : Med. Average-Speed (km/h; raw) : Max. Average-Speed (km/h; raw) : No. Of LD Measurements (ARIMA) : ' + \
                  'No. Of Good LD Measurements (ARIMA) : First Time Stamp (ARIMA) : Last Time Stamp (ARIMA) : No. Of Dates (ARIMA) : Min. Flow (veh/h; ARIMA) : Med. Flow (veh/h; ARIMA) : ' + \
-                 'Max. Flow (veh/h; ARIMA) : Min. Occupancy (ARIMA) : Med. Occupancy (ARIMA) : Max. Occupancy (ARIMA) : Min. Average-Speed (????; ARIMA) : Med. Average-Speed (????; ARIMA) : ' + \
-                 'Max. Average-Speed (????; ARIMA)\n')
+                 'Max. Flow (veh/h; ARIMA) : Min. Occupancy (ARIMA) : Med. Occupancy (ARIMA) : Max. Occupancy (ARIMA) : Min. Average-Speed (km/h; ARIMA) : Med. Average-Speed (km/h; ARIMA) : ' + \
+                 'Max. Average-Speed (km/h; ARIMA)\n')
 
 # Determine the list of loop detector locations data files
 print('')
@@ -82,6 +89,13 @@ for file in file_list:
     basename_bits = basename_with_ext.split('.')
     country_name = basename_bits[1]
     city_name = basename_bits[2]
+
+    # Determine the source of the flow and occupancy/speed measurements
+    if city_name in ['birmingham', 'bolton', 'innsbruck', 'manchester', 'rotterdam', 'torino']:
+        data_source = 'LD.Flow.LD.Speed'
+    elif city_name in ['groningen', 'melbourne', 'utrecht']:
+        data_source = 'LD.Flow.BT.Speed'
+    else: data_source = 'LD.Flow.LD.Occupancy'
 
     # Filter out the loop detectors with bad "POSITION" values (45 loop detectors rejected in total)
     nld_locations_old = nld_locations
@@ -137,9 +151,9 @@ for file in file_list:
     min_flow_raw = numpy.zeros(nld_locations, dtype = numpy.float64)
     med_flow_raw = numpy.zeros(nld_locations, dtype = numpy.float64)
     max_flow_raw = numpy.zeros(nld_locations, dtype = numpy.float64)
-    min_occupancy_raw = numpy.zeros(nld_locations, dtype = numpy.float64)
-    med_occupancy_raw = numpy.zeros(nld_locations, dtype = numpy.float64)
-    max_occupancy_raw = numpy.zeros(nld_locations, dtype = numpy.float64)
+    min_occupancy_raw = numpy.zeros(nld_locations, dtype = numpy.float64) - 1.0
+    med_occupancy_raw = numpy.zeros(nld_locations, dtype = numpy.float64) - 1.0
+    max_occupancy_raw = numpy.zeros(nld_locations, dtype = numpy.float64) - 1.0
     min_speed_raw = numpy.zeros(nld_locations, dtype = numpy.float64) - 1.0
     med_speed_raw = numpy.zeros(nld_locations, dtype = numpy.float64) - 1.0
     max_speed_raw = numpy.zeros(nld_locations, dtype = numpy.float64) - 1.0
@@ -178,7 +192,7 @@ for file in file_list:
         nld_measurements_raw = len(ld_measurements_table_raw)
 
         # Filter out the loop detector measurements (raw) with bad "DATE", or bad "INTERVAL_START", values
-        # (94,599 loop detector measurements rejected in total; 2 loop detectors rejected in total)
+        # (2 loop detectors rejected in total)
         nld_measurements_raw_old = nld_measurements_raw
         tmp_selection = numpy.logical_and(ld_measurements_table_raw['DATE'] != '0000-00-00', ld_measurements_table_raw['INTERVAL_START'] != -1)
         nld_measurements_raw = numpy.count_nonzero(tmp_selection)
@@ -188,9 +202,21 @@ for file in file_list:
             continue
         if nld_measurements_raw < nld_measurements_raw_old: ld_measurements_table_raw = ld_measurements_table_raw[tmp_selection]
 
-        # Ensure that the loop detector measurements (raw) with bad "FLOW", or bad "OCCUPANCY", values are
-        # flagged with "ERROR_FLAG = 1" (90,366,062 loop detector measurements are flagged in total)
-        ld_measurements_table_raw['ERROR_FLAG'][numpy.logical_or(ld_measurements_table_raw['FLOW'] == -1.0, ld_measurements_table_raw['OCCUPANCY'] == -1.0)] = 1
+        # If the data source consists of flow and occupancy measurements
+        if data_source == 'LD.Flow.LD.Occupancy':
+
+            # Ensure that the loop detector measurements (raw) with bad "FLOW", or bad "OCCUPANCY", values
+            # are flagged with "ERROR_FLAG = 1", and delete the "SPEED" column
+            ld_measurements_table_raw['ERROR_FLAG'][numpy.logical_or(ld_measurements_table_raw['FLOW'] == -1.0, ld_measurements_table_raw['OCCUPANCY'] == -1.0)] = 1
+            ld_measurements_table_raw.remove_column('SPEED')
+
+        # If the data source consists of flow and speed measurements
+        else:
+
+            # Ensure that the loop detector measurements (raw) with bad "FLOW", or bad "SPEED", values are
+            # flagged with "ERROR_FLAG = 1", and delete the "OCCUPANCY" column
+            ld_measurements_table_raw['ERROR_FLAG'][numpy.logical_or(ld_measurements_table_raw['FLOW'] == -1.0, ld_measurements_table_raw['SPEED'] == -1.0)] = 1
+            ld_measurements_table_raw.remove_column('OCCUPANCY')
 
         # If all of the loop detector measurements (raw) for the current loop detector are flagged with
         # "ERROR_FLAG = 1", then reject the current loop detector, and move on to the next loop detector (6,331
@@ -232,18 +258,18 @@ for file in file_list:
         min_flow_raw[i] = numpy.min(good_ld_measurements_table_raw['FLOW'])
         med_flow_raw[i] = numpy.median(good_ld_measurements_table_raw['FLOW'])
         max_flow_raw[i] = numpy.max(good_ld_measurements_table_raw['FLOW'])
-        min_occupancy_raw[i] = numpy.min(good_ld_measurements_table_raw['OCCUPANCY'])
-        med_occupancy_raw[i] = numpy.median(good_ld_measurements_table_raw['OCCUPANCY'])
-        max_occupancy_raw[i] = numpy.max(good_ld_measurements_table_raw['OCCUPANCY'])
-        tmp_selection = good_ld_measurements_table_raw['SPEED'] >= 0.0
-        if numpy.count_nonzero(tmp_selection) > 0:
-            min_speed_raw[i] = numpy.min(good_ld_measurements_table_raw['SPEED'][tmp_selection])
-            med_speed_raw[i] = numpy.median(good_ld_measurements_table_raw['SPEED'][tmp_selection])
-            max_speed_raw[i] = numpy.max(good_ld_measurements_table_raw['SPEED'][tmp_selection])
+        if data_source == 'LD.Flow.LD.Occupancy':
+            min_occupancy_raw[i] = numpy.min(good_ld_measurements_table_raw['OCCUPANCY'])
+            med_occupancy_raw[i] = numpy.median(good_ld_measurements_table_raw['OCCUPANCY'])
+            max_occupancy_raw[i] = numpy.max(good_ld_measurements_table_raw['OCCUPANCY'])
+        else:
+            min_speed_raw[i] = numpy.min(good_ld_measurements_table_raw['SPEED'])
+            med_speed_raw[i] = numpy.median(good_ld_measurements_table_raw['SPEED'])
+            max_speed_raw[i] = numpy.max(good_ld_measurements_table_raw['SPEED'])
 
         # Write out the filtered loop detector measurements (raw) data table for the current loop detector
-        curr_output_dir = os.path.join(output_dir_ld_measurements_raw, country_name, city_name, ld_locations_table['DETECTOR_ID'][i])
-        curr_output_file = os.path.join(curr_output_dir, 'measurements.raw.' + country_name + '.' + city_name + '.' + ld_locations_table['DETECTOR_ID'][i] + '.fits')
+        curr_output_dir = os.path.join(output_dir_ld_measurements_raw, data_source, country_name, city_name, ld_locations_table['DETECTOR_ID'][i])
+        curr_output_file = os.path.join(curr_output_dir, 'measurements.raw.' + data_source + '.' + country_name + '.' + city_name + '.' + ld_locations_table['DETECTOR_ID'][i] + '.fits')
         os.makedirs(curr_output_dir)
         ld_measurements_table_raw.write(curr_output_file, format = 'fits')
 
@@ -253,7 +279,7 @@ for file in file_list:
         ld_measurements_file_arima = os.path.join(config.output_dir, 's0.Loop.Detector.Measurements.ARIMA', country_name, city_name, ld_locations_table['DETECTOR_ID'][i], ld_measurements_file_arima)
 
         # If the corresponding loop detector measurements data file (ARIMA) does not exist, then move on to
-        # the next loop detector (9 loop detectors in total do not have ARIMA files)
+        # the next loop detector
         if not os.path.exists(ld_measurements_file_arima): continue
 
         # Read in the corresponding loop detector measurements data file (ARIMA)
@@ -261,25 +287,38 @@ for file in file_list:
         nld_measurements_arima = len(ld_measurements_table_arima)
 
         # Filter out the loop detector measurements (ARIMA) with bad "DATE", or bad "INTERVAL_START", values
-        # (2,244 loop detector measurements rejected in total; zero loop detectors in total have invalid ARIMA
-        # files for this reason)
         nld_measurements_arima_old = nld_measurements_arima
         tmp_selection = numpy.logical_and(ld_measurements_table_arima['DATE'] != '0000-00-00', ld_measurements_table_arima['INTERVAL_START'] != -1)
         nld_measurements_arima = numpy.count_nonzero(tmp_selection)
         if nld_measurements_arima == 0: continue
         if nld_measurements_arima < nld_measurements_arima_old: ld_measurements_table_arima = ld_measurements_table_arima[tmp_selection]
 
-        # Ensure that the loop detector measurements (ARIMA) with bad "FLOW", or bad "OCCUPANCY", or bad
-        # "ARIMA_FLOW", or bad "ARIMA_OCCUPANCY" values are flagged with "ERROR_FLAG = 1" (26,569,115 loop
-        # detector measurements are flagged in total)
-        tmp_selection = numpy.logical_or(ld_measurements_table_arima['FLOW'] == -1.0, ld_measurements_table_arima['OCCUPANCY'] == -1.0)
-        tmp_selection = numpy.logical_or(tmp_selection, ld_measurements_table_arima['ARIMA_FLOW'] == -1.0)
-        tmp_selection = numpy.logical_or(tmp_selection, ld_measurements_table_arima['ARIMA_OCCUPANCY'] == -1.0)
-        ld_measurements_table_arima['ERROR_FLAG'][tmp_selection] = 1
+        # If the data source consists of flow and occupancy measurements
+        if data_source == 'LD.Flow.LD.Occupancy':
+
+            # Ensure that the loop detector measurements (ARIMA) with bad "FLOW", or bad "OCCUPANCY", or bad
+            # "ARIMA_FLOW", or bad "ARIMA_OCCUPANCY" values are flagged with "ERROR_FLAG = 1", and delete
+            # the "SPEED" and "ARIMA_SPEED" columns
+            tmp_selection = numpy.logical_or(ld_measurements_table_arima['FLOW'] == -1.0, ld_measurements_table_arima['OCCUPANCY'] == -1.0)
+            tmp_selection = numpy.logical_or(tmp_selection, ld_measurements_table_arima['ARIMA_FLOW'] == -1.0)
+            tmp_selection = numpy.logical_or(tmp_selection, ld_measurements_table_arima['ARIMA_OCCUPANCY'] == -1.0)
+            ld_measurements_table_arima['ERROR_FLAG'][tmp_selection] = 1
+            ld_measurements_table_arima.remove_columns(['SPEED', 'ARIMA_SPEED'])
+
+        # If the data source consists of flow and speed measurements
+        else:
+
+            # Ensure that the loop detector measurements (ARIMA) with bad "FLOW", or bad "SPEED", or bad
+            # "ARIMA_FLOW", or bad "ARIMA_SPEED" values are flagged with "ERROR_FLAG = 1", and delete the
+            # "OCCUPANCY" and "ARIMA_OCCUPANCY" columns
+            tmp_selection = numpy.logical_or(ld_measurements_table_arima['FLOW'] == -1.0, ld_measurements_table_arima['SPEED'] == -1.0)
+            tmp_selection = numpy.logical_or(tmp_selection, ld_measurements_table_arima['ARIMA_FLOW'] == -1.0)
+            tmp_selection = numpy.logical_or(tmp_selection, ld_measurements_table_arima['ARIMA_SPEED'] == -1.0)
+            ld_measurements_table_arima['ERROR_FLAG'][tmp_selection] = 1
+            ld_measurements_table_arima.remove_columns(['OCCUPANCY', 'ARIMA_OCCUPANCY'])
 
         # If all of the loop detector measurements (ARIMA) for the current loop detector are flagged with
-        # "ERROR_FLAG = 1", then move on to the next loop detector (928 loop detectors in total have invalid
-        # ARIMA files for this reason)
+        # "ERROR_FLAG = 1", then move on to the next loop detector
         if numpy.count_nonzero(ld_measurements_table_arima['ERROR_FLAG']) == nld_measurements_arima: continue
 
         # Compute summary statistics for the set of accepted loop detector measurements (ARIMA) for the current
@@ -293,18 +332,18 @@ for file in file_list:
         min_flow_arima[i] = numpy.min(good_ld_measurements_table_arima['ARIMA_FLOW'])
         med_flow_arima[i] = numpy.median(good_ld_measurements_table_arima['ARIMA_FLOW'])
         max_flow_arima[i] = numpy.max(good_ld_measurements_table_arima['ARIMA_FLOW'])
-        min_occupancy_arima[i] = numpy.min(good_ld_measurements_table_arima['ARIMA_OCCUPANCY'])
-        med_occupancy_arima[i] = numpy.median(good_ld_measurements_table_arima['ARIMA_OCCUPANCY'])
-        max_occupancy_arima[i] = numpy.max(good_ld_measurements_table_arima['ARIMA_OCCUPANCY'])
-        tmp_selection = good_ld_measurements_table_arima['ARIMA_SPEED'] >= 0.0
-        if numpy.count_nonzero(tmp_selection) > 0:
-            min_speed_arima[i] = numpy.min(good_ld_measurements_table_arima['ARIMA_SPEED'][tmp_selection])
-            med_speed_arima[i] = numpy.median(good_ld_measurements_table_arima['ARIMA_SPEED'][tmp_selection])
-            max_speed_arima[i] = numpy.max(good_ld_measurements_table_arima['ARIMA_SPEED'][tmp_selection])
+        if data_source == 'LD.Flow.LD.Occupancy':
+            min_occupancy_arima[i] = numpy.min(good_ld_measurements_table_arima['ARIMA_OCCUPANCY'])
+            med_occupancy_arima[i] = numpy.median(good_ld_measurements_table_arima['ARIMA_OCCUPANCY'])
+            max_occupancy_arima[i] = numpy.max(good_ld_measurements_table_arima['ARIMA_OCCUPANCY'])
+        else:
+            min_speed_arima[i] = numpy.min(good_ld_measurements_table_arima['ARIMA_SPEED'])
+            med_speed_arima[i] = numpy.median(good_ld_measurements_table_arima['ARIMA_SPEED'])
+            max_speed_arima[i] = numpy.max(good_ld_measurements_table_arima['ARIMA_SPEED'])
 
         # Write out the filtered loop detector measurements (ARIMA) data table for the current loop detector
-        curr_output_dir = os.path.join(output_dir_ld_measurements_arima, country_name, city_name, ld_locations_table['DETECTOR_ID'][i])
-        curr_output_file = os.path.join(curr_output_dir, 'measurements.ARIMA.' + country_name + '.' + city_name + '.' + ld_locations_table['DETECTOR_ID'][i] + '.fits')
+        curr_output_dir = os.path.join(output_dir_ld_measurements_arima, data_source, country_name, city_name, ld_locations_table['DETECTOR_ID'][i])
+        curr_output_file = os.path.join(curr_output_dir, 'measurements.ARIMA.' + data_source + '.' + country_name + '.' + city_name + '.' + ld_locations_table['DETECTOR_ID'][i] + '.fits')
         os.makedirs(curr_output_dir)
         ld_measurements_table_arima.write(curr_output_file, format = 'fits')
 
@@ -425,7 +464,7 @@ for file in file_list:
         ssfile.write(line_out)
 
     # Write out the filtered loop detector locations data table for the current city
-    curr_output_file = os.path.join(output_dir_ld_locations, 'detectors.' + country_name + '.' + city_name + '.fits')
+    curr_output_file = os.path.join(output_dir_ld_locations, 'detectors.' + data_source + '.' + country_name + '.' + city_name + '.fits')
     print('Writing out the filtered loop detector locations data table: ' + curr_output_file)
     ld_locations_table.write(curr_output_file, format = 'fits')
 

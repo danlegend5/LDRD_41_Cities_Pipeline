@@ -18,8 +18,8 @@ import os
 import shutil
 from astropy.table import Column
 from astropy.table import Table
-from LDDA_MFD_Project1_Pipeline.config import config
-from LDDA_MFD_Project1_Pipeline.lib import general_functions
+from LDRD_41_Cities_Pipeline.config import config
+from LDRD_41_Cities_Pipeline.lib import general_functions
 
 # Prepare a table for the loop detector locations data
 print('')
