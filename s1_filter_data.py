@@ -7,32 +7,33 @@ __author__ = 'Dan Bramich'
 # cities only provide flow and occupancy measurements, while others only provide flow and speed measurements.
 #
 # N.B: The source of the "detector" measurements for each city is listed below (data provenance). Data for a
-#      city come from one of three possible sources:
+#      city come from one of four possible sources:
 #
-#      (i) Loop detectors => Provide flow and occupancy measurements, but no speed measurements.
+#      (i) Loop detectors measuring occupancy => Provide flow and occupancy measurements, but no speed
+#                                                measurements.
 #
 #      (ii) Loop detectors measuring speed => Provide flow and speed measurements, but no (useful) occupancy
 #                                             measurements.
 #
-#      (iii) Loop detectors and bluetooth => Loop detectors provide flow measurements, while bluetooth
-#                                            provides speed measurements, but there are no (useful) occupancy
-#                                            measurements.
+#      (iii) Loop detectors => Provide flow and occupancy measurements, and speed measurements have been
+#                              inferred.
 #
-#      The cities in group (i) are: augsburg, basel, bern, bordeaux, bremen, cagliari, constance, darmstadt,
-#                                   duisburg, essen, frankfurt, graz, hamburg, kassel, london, losangeles,
-#                                   luzern, madrid, marseille, munich, paris, santander, speyer, strasbourg,
-#                                   stuttgart, taipeh, tokyo, toronto, toulouse, vilnius, wolfsburg, zurich
+#      (iv) Loop detectors and bluetooth detectors => Loop detectors provide flow measurements, while
+#                                                     bluetooth detectors provide speed measurements, but
+#                                                     there are no (useful) occupancy measurements. The
+#                                                     loop detectors and bluetooth detectors are not
+#                                                     necessarily at the same location.
+#
+#      The cities in group (i) are: augsburg, basel, bern, bordeaux, bremen, cagliari, darmstadt, duisburg,
+#                                   frankfurt, graz, hamburg, kassel, london, losangeles, luzern, madrid,
+#                                   marseille, munich, paris, santander, speyer, strasbourg, stuttgart,
+#                                   taipeh, tokyo, toronto, toulouse, vilnius, wolfsburg, zurich
 #
 #      The cities in group (ii) are: birmingham, bolton, innsbruck, manchester, rotterdam, torino
 #
-#      The cities in group (iii) are: groningen, melbourne, utrecht
-
-
-####
-# melbourne - fully rejected because any specific detector either has good flow measurements or good speed measurements, but not both
-# utrecht - fully rejected because it only has flow
-####
-
+#      The cities in group (iii) are: constance, essen
+#
+#      The cities in group (iv) are: groningen, melbourne, utrecht
 
 # Imports
 import glob
@@ -61,8 +62,8 @@ print('Creating the output directory for the loop detector measurements data tab
 if os.path.exists(output_dir_ld_measurements_arima): shutil.rmtree(output_dir_ld_measurements_arima)
 os.makedirs(output_dir_ld_measurements_arima)
 
-# Initialise the text file that will be used to contain the summary statistics of the loop detectors on a
-# per city basis
+# Initialise the text file that will be used to contain the summary statistics of the loop detectors on a per
+# city basis
 summary_stats_of_detectors_per_city_file = os.path.join(output_dir_ld_locations, 'summary.statistics.of.detectors.per.city.txt')
 print('')
 print('Initialising the text file that will be used to contain the summary statistics of the loop detectors: ' + summary_stats_of_detectors_per_city_file)
@@ -115,20 +116,17 @@ for file in file_list:
     # Determine the source of the flow and occupancy/speed measurements
     if city_name in ['birmingham', 'bolton', 'innsbruck', 'manchester', 'rotterdam', 'torino']:
         data_source = 'LD.Flow.LD.Speed'
+    elif city_name in ['constance', 'essen']:
+        data_source = 'LD.Flow.LD.Occupancy.LD.Speed'
     elif city_name in ['groningen', 'melbourne', 'utrecht']:
         data_source = 'LD.Flow.BT.Speed'
     else: data_source = 'LD.Flow.LD.Occupancy'
 
-    # Filter out the loop detectors with bad "POSITION" values (45 loop detectors rejected in total)
-    nld_locations_old = nld_locations
-    ld_locations_table = ld_locations_table[ld_locations_table['POSITION'] >= 0.0]
-    nld_locations = len(ld_locations_table)
-    print('No. of loop detectors rejected with bad "POSITION" values:                                                                           ' + str(nld_locations_old - nld_locations))
-
     # Normalise the "POSITION" column by the "LENGTH" column (while forcing some normalised values that are
     # slightly greater than unity to be exactly unity)
     print('Normalising the "POSITION" column by the "LENGTH" column...')
-    ld_locations_table['POSITION'] = numpy.clip(ld_locations_table['POSITION']/ld_locations_table['LENGTH'], None, 1.0)
+    selection = ld_locations_table['POSITION'] >= 0.0
+    ld_locations_table['POSITION'][selection] = numpy.clip(ld_locations_table['POSITION'][selection]/ld_locations_table['LENGTH'][selection], None, 1.0)
 
     # Filter out the loop detectors that are on roads with the following classifications: 'cycleway', 'footway',
     # 'other', 'path', 'pedestrian' (216 loop detectors rejected in total)
@@ -170,9 +168,9 @@ for file in file_list:
     interval_lengths_raw = numpy.array([empty_str]*nld_locations)
     interval_lengths_raw[:] = '-'
     med_interval_length_raw = numpy.zeros(nld_locations, dtype = numpy.int32)
-    min_flow_raw = numpy.zeros(nld_locations, dtype = numpy.float64)
-    med_flow_raw = numpy.zeros(nld_locations, dtype = numpy.float64)
-    max_flow_raw = numpy.zeros(nld_locations, dtype = numpy.float64)
+    min_flow_raw = numpy.zeros(nld_locations, dtype = numpy.float64) - 1.0
+    med_flow_raw = numpy.zeros(nld_locations, dtype = numpy.float64) - 1.0
+    max_flow_raw = numpy.zeros(nld_locations, dtype = numpy.float64) - 1.0
     min_occupancy_raw = numpy.zeros(nld_locations, dtype = numpy.float64) - 1.0
     med_occupancy_raw = numpy.zeros(nld_locations, dtype = numpy.float64) - 1.0
     max_occupancy_raw = numpy.zeros(nld_locations, dtype = numpy.float64) - 1.0
@@ -224,35 +222,61 @@ for file in file_list:
             continue
         if nld_measurements_raw < nld_measurements_raw_old: ld_measurements_table_raw = ld_measurements_table_raw[tmp_selection]
 
-        # If the data source consists of flow and occupancy measurements
+        # If the data source consists of flow and occupancy measurements, but no speed measurements
         if data_source == 'LD.Flow.LD.Occupancy':
 
-            # Ensure that the loop detector measurements (raw) with bad "FLOW", or bad "OCCUPANCY", values
-            # are flagged with "ERROR_FLAG = 1", and delete the "SPEED" column
+            # Ensure that the loop detector measurements (raw) with bad "FLOW" or bad "OCCUPANCY" values are
+            # flagged with "ERROR_FLAG = 1", and delete the "SPEED" column
             ld_measurements_table_raw['ERROR_FLAG'][numpy.logical_or(ld_measurements_table_raw['FLOW'] == -1.0, ld_measurements_table_raw['OCCUPANCY'] == -1.0)] = 1
             ld_measurements_table_raw.remove_column('SPEED')
 
-        # If the data source consists of flow and speed measurements
-        else:
+        # If the data source consists of flow and speed measurements, but no (useful) occupancy measurements
+        elif data_source == 'LD.Flow.LD.Speed':
 
-            # Ensure that the loop detector measurements (raw) with bad "FLOW", or bad "SPEED", values are
+            # Ensure that the loop detector measurements (raw) with bad "FLOW" or bad "SPEED" values are
             # flagged with "ERROR_FLAG = 1", and delete the "OCCUPANCY" column
             ld_measurements_table_raw['ERROR_FLAG'][numpy.logical_or(ld_measurements_table_raw['FLOW'] == -1.0, ld_measurements_table_raw['SPEED'] == -1.0)] = 1
             ld_measurements_table_raw.remove_column('OCCUPANCY')
 
+        # If the data source consists of flow and occupancy measurements, and the speed measurements have
+        # been inferred
+        elif data_source == 'LD.Flow.LD.Occupancy.LD.Speed':
+
+            # Ensure that the loop detector measurements (raw) with bad "FLOW" or bad "OCCUPANCY" or bad
+            # "SPEED" values are flagged with "ERROR_FLAG = 1"
+            tmp_selection = numpy.logical_or(ld_measurements_table_raw['FLOW'] == -1.0, ld_measurements_table_raw['OCCUPANCY'] == -1.0)
+            tmp_selection = numpy.logical_or(tmp_selection, ld_measurements_table_raw['SPEED'] == -1.0)
+            ld_measurements_table_raw['ERROR_FLAG'][tmp_selection] = 1
+
+        # If the data source consists of flow measurements from loop detectors and speed measurements from
+        # bluetooth detectors, but no (useful) occupancy measurements
+        else:
+
+            # Ensure that the flow and speed measurements are set to "-1.0" whenever "ERROR_FLAG = 1", and
+            # delete the "OCCUPANCY" and "ERROR_FLAG" columns (N.B: the loop detectors and bluetooth
+            # detectors are not necessarily at the same location)
+            tmp_selection = ld_measurements_table_raw['ERROR_FLAG'] == 1
+            ld_measurements_table_raw['FLOW'][tmp_selection] = -1.0
+            ld_measurements_table_raw['SPEED'][tmp_selection] = -1.0
+            ld_measurements_table_raw.remove_columns(['OCCUPANCY', 'ERROR_FLAG'])
+
         # If all of the loop detector measurements (raw) for the current loop detector are flagged with
-        # "ERROR_FLAG = 1", then reject the current loop detector, and move on to the next loop detector (6,331
-        # loop detectors rejected in total)
-        if numpy.count_nonzero(ld_measurements_table_raw['ERROR_FLAG']) == nld_measurements_raw:
-            selection[i] = False
-            nrejected_reason3 += 1
-            continue
+        # "ERROR_FLAG = 1", then reject the current loop detector, and move on to the next loop detector
+        # (3,674 loop detectors rejected in total)
+        if data_source != 'LD.Flow.BT.Speed':
+            if numpy.count_nonzero(ld_measurements_table_raw['ERROR_FLAG']) == nld_measurements_raw:
+                selection[i] = False
+                nrejected_reason3 += 1
+                continue
 
         # Compute summary statistics for the set of accepted loop detector measurements (raw) for the current
         # loop detector
-        good_ld_measurements_table_raw = ld_measurements_table_raw[ld_measurements_table_raw['ERROR_FLAG'] == 0]
         nld_measurements_raw_all[i] = nld_measurements_raw
-        nld_measurements_raw_good[i] = len(good_ld_measurements_table_raw)
+        if data_source == 'LD.Flow.BT.Speed':
+            nld_measurements_raw_good[i] = -1
+        else:
+            good_ld_measurements_table_raw = ld_measurements_table_raw[ld_measurements_table_raw['ERROR_FLAG'] == 0]
+            nld_measurements_raw_good[i] = len(good_ld_measurements_table_raw)
         first_time_stamp_raw[i] = ld_measurements_table_raw['DATE'][0] + 'T' + '{:05d}'.format(ld_measurements_table_raw['INTERVAL_START'][0]).strip()
         last_time_stamp_raw[i] = ld_measurements_table_raw['DATE'][-1] + 'T' + '{:05d}'.format(ld_measurements_table_raw['INTERVAL_START'][-1]).strip()
         ndates_raw[i] = len(numpy.unique(ld_measurements_table_raw['DATE']))
@@ -277,17 +301,25 @@ for file in file_list:
         else:
             interval_lengths_raw[i] = '-'
             med_interval_length_raw[i] = -1
-        min_flow_raw[i] = numpy.min(good_ld_measurements_table_raw['FLOW'])
-        med_flow_raw[i] = numpy.median(good_ld_measurements_table_raw['FLOW'])
-        max_flow_raw[i] = numpy.max(good_ld_measurements_table_raw['FLOW'])
-        if data_source == 'LD.Flow.LD.Occupancy':
-            min_occupancy_raw[i] = numpy.min(good_ld_measurements_table_raw['OCCUPANCY'])
-            med_occupancy_raw[i] = numpy.median(good_ld_measurements_table_raw['OCCUPANCY'])
-            max_occupancy_raw[i] = numpy.max(good_ld_measurements_table_raw['OCCUPANCY'])
-        else:
-            min_speed_raw[i] = numpy.min(good_ld_measurements_table_raw['SPEED'])
-            med_speed_raw[i] = numpy.median(good_ld_measurements_table_raw['SPEED'])
-            max_speed_raw[i] = numpy.max(good_ld_measurements_table_raw['SPEED'])
+        if data_source != 'LD.Flow.BT.Speed':
+            min_flow_raw[i] = numpy.min(good_ld_measurements_table_raw['FLOW'])
+            med_flow_raw[i] = numpy.median(good_ld_measurements_table_raw['FLOW'])
+            max_flow_raw[i] = numpy.max(good_ld_measurements_table_raw['FLOW'])
+            if data_source == 'LD.Flow.LD.Occupancy':
+                min_occupancy_raw[i] = numpy.min(good_ld_measurements_table_raw['OCCUPANCY'])
+                med_occupancy_raw[i] = numpy.median(good_ld_measurements_table_raw['OCCUPANCY'])
+                max_occupancy_raw[i] = numpy.max(good_ld_measurements_table_raw['OCCUPANCY'])
+            elif data_source == 'LD.Flow.LD.Speed':
+                min_speed_raw[i] = numpy.min(good_ld_measurements_table_raw['SPEED'])
+                med_speed_raw[i] = numpy.median(good_ld_measurements_table_raw['SPEED'])
+                max_speed_raw[i] = numpy.max(good_ld_measurements_table_raw['SPEED'])
+            else:
+                min_occupancy_raw[i] = numpy.min(good_ld_measurements_table_raw['OCCUPANCY'])
+                med_occupancy_raw[i] = numpy.median(good_ld_measurements_table_raw['OCCUPANCY'])
+                max_occupancy_raw[i] = numpy.max(good_ld_measurements_table_raw['OCCUPANCY'])
+                min_speed_raw[i] = numpy.min(good_ld_measurements_table_raw['SPEED'])
+                med_speed_raw[i] = numpy.median(good_ld_measurements_table_raw['SPEED'])
+                max_speed_raw[i] = numpy.max(good_ld_measurements_table_raw['SPEED'])
 
         # Write out the filtered loop detector measurements (raw) data table for the current loop detector
         curr_output_dir = os.path.join(output_dir_ld_measurements_raw, data_source, country_name, city_name, ld_locations_table['DETECTOR_ID'][i])
@@ -315,11 +347,11 @@ for file in file_list:
         if nld_measurements_arima == 0: continue
         if nld_measurements_arima < nld_measurements_arima_old: ld_measurements_table_arima = ld_measurements_table_arima[tmp_selection]
 
-        # If the data source consists of flow and occupancy measurements
+        # If the data source consists of flow and occupancy measurements, but no speed measurements
         if data_source == 'LD.Flow.LD.Occupancy':
 
-            # Ensure that the loop detector measurements (ARIMA) with bad "FLOW", or bad "OCCUPANCY", or bad
-            # "ARIMA_FLOW", or bad "ARIMA_OCCUPANCY" values are flagged with "ERROR_FLAG = 1", and delete
+            # Ensure that the loop detector measurements (ARIMA) with bad "FLOW" or bad "OCCUPANCY" or bad
+            # "ARIMA_FLOW" or bad "ARIMA_OCCUPANCY" values are flagged with "ERROR_FLAG = 1", and delete
             # the "SPEED" and "ARIMA_SPEED" columns
             tmp_selection = numpy.logical_or(ld_measurements_table_arima['FLOW'] == -1.0, ld_measurements_table_arima['OCCUPANCY'] == -1.0)
             tmp_selection = numpy.logical_or(tmp_selection, ld_measurements_table_arima['ARIMA_FLOW'] == -1.0)
@@ -327,11 +359,11 @@ for file in file_list:
             ld_measurements_table_arima['ERROR_FLAG'][tmp_selection] = 1
             ld_measurements_table_arima.remove_columns(['SPEED', 'ARIMA_SPEED'])
 
-        # If the data source consists of flow and speed measurements
-        else:
+        # If the data source consists of flow and speed measurements, but no (useful) occupancy measurements
+        elif data_source == 'LD.Flow.LD.Speed':
 
-            # Ensure that the loop detector measurements (ARIMA) with bad "FLOW", or bad "SPEED", or bad
-            # "ARIMA_FLOW", or bad "ARIMA_SPEED" values are flagged with "ERROR_FLAG = 1", and delete the
+            # Ensure that the loop detector measurements (ARIMA) with bad "FLOW" or bad "SPEED" or bad
+            # "ARIMA_FLOW" or bad "ARIMA_SPEED" values are flagged with "ERROR_FLAG = 1", and delete the
             # "OCCUPANCY" and "ARIMA_OCCUPANCY" columns
             tmp_selection = numpy.logical_or(ld_measurements_table_arima['FLOW'] == -1.0, ld_measurements_table_arima['SPEED'] == -1.0)
             tmp_selection = numpy.logical_or(tmp_selection, ld_measurements_table_arima['ARIMA_FLOW'] == -1.0)
@@ -339,29 +371,69 @@ for file in file_list:
             ld_measurements_table_arima['ERROR_FLAG'][tmp_selection] = 1
             ld_measurements_table_arima.remove_columns(['OCCUPANCY', 'ARIMA_OCCUPANCY'])
 
+        # If the data source consists of flow and occupancy measurements, and the speed measurements have
+        # been inferred
+        elif data_source == 'LD.Flow.LD.Occupancy.LD.Speed':
+
+            # Ensure that the loop detector measurements (ARIMA) with bad "FLOW" or bad "OCCUPANCY" or bad
+            # "SPEED" or bad "ARIMA_FLOW" or bad "ARIMA_OCCUPANCY" or bad "ARIMA_SPEED" values are flagged
+            # with "ERROR_FLAG = 1"
+            tmp_selection = numpy.logical_or(ld_measurements_table_arima['FLOW'] == -1.0, ld_measurements_table_arima['OCCUPANCY'] == -1.0)
+            tmp_selection = numpy.logical_or(tmp_selection, ld_measurements_table_arima['SPEED'] == -1.0)
+            tmp_selection = numpy.logical_or(tmp_selection, ld_measurements_table_arima['ARIMA_FLOW'] == -1.0)
+            tmp_selection = numpy.logical_or(tmp_selection, ld_measurements_table_arima['ARIMA_OCCUPANCY'] == -1.0)
+            tmp_selection = numpy.logical_or(tmp_selection, ld_measurements_table_arima['ARIMA_SPEED'] == -1.0)
+            ld_measurements_table_arima['ERROR_FLAG'][tmp_selection] = 1
+
+        # If the data source consists of flow measurements from loop detectors and speed measurements from
+        # bluetooth detectors, but no (useful) occupancy measurements
+        else:
+
+            # Ensure that the flow and speed measurements are set to "-1.0" whenever "ERROR_FLAG = 1", and
+            # delete the "OCCUPANCY", "ARIMA_OCCUPANCY", and "ERROR_FLAG" columns (N.B: the loop detectors
+            # and bluetooth detectors are not necessarily at the same location)
+            tmp_selection = ld_measurements_table_arima['ERROR_FLAG'] == 1
+            ld_measurements_table_arima['FLOW'][tmp_selection] = -1.0
+            ld_measurements_table_arima['SPEED'][tmp_selection] = -1.0
+            ld_measurements_table_arima['ARIMA_FLOW'][tmp_selection] = -1.0
+            ld_measurements_table_arima['ARIMA_SPEED'][tmp_selection] = -1.0
+            ld_measurements_table_arima.remove_columns(['OCCUPANCY', 'ARIMA_OCCUPANCY', 'ERROR_FLAG'])
+
         # If all of the loop detector measurements (ARIMA) for the current loop detector are flagged with
         # "ERROR_FLAG = 1", then move on to the next loop detector
-        if numpy.count_nonzero(ld_measurements_table_arima['ERROR_FLAG']) == nld_measurements_arima: continue
+        if data_source != 'LD.Flow.BT.Speed':
+            if numpy.count_nonzero(ld_measurements_table_arima['ERROR_FLAG']) == nld_measurements_arima: continue
 
         # Compute summary statistics for the set of accepted loop detector measurements (ARIMA) for the current
         # loop detector
-        good_ld_measurements_table_arima = ld_measurements_table_arima[ld_measurements_table_arima['ERROR_FLAG'] == 0]
         nld_measurements_arima_all[i] = nld_measurements_arima
-        nld_measurements_arima_good[i] = len(good_ld_measurements_table_arima)
+        if data_source == 'LD.Flow.BT.Speed':
+            nld_measurements_arima_good[i] = -1
+        else:
+            good_ld_measurements_table_arima = ld_measurements_table_arima[ld_measurements_table_arima['ERROR_FLAG'] == 0]
+            nld_measurements_arima_good[i] = len(good_ld_measurements_table_arima)
         first_time_stamp_arima[i] = ld_measurements_table_arima['DATE'][0] + 'T' + '{:05d}'.format(ld_measurements_table_arima['INTERVAL_START'][0]).strip()
         last_time_stamp_arima[i] = ld_measurements_table_arima['DATE'][-1] + 'T' + '{:05d}'.format(ld_measurements_table_arima['INTERVAL_START'][-1]).strip()
         ndates_arima[i] = len(numpy.unique(ld_measurements_table_arima['DATE']))
-        min_flow_arima[i] = numpy.min(good_ld_measurements_table_arima['ARIMA_FLOW'])
-        med_flow_arima[i] = numpy.median(good_ld_measurements_table_arima['ARIMA_FLOW'])
-        max_flow_arima[i] = numpy.max(good_ld_measurements_table_arima['ARIMA_FLOW'])
-        if data_source == 'LD.Flow.LD.Occupancy':
-            min_occupancy_arima[i] = numpy.min(good_ld_measurements_table_arima['ARIMA_OCCUPANCY'])
-            med_occupancy_arima[i] = numpy.median(good_ld_measurements_table_arima['ARIMA_OCCUPANCY'])
-            max_occupancy_arima[i] = numpy.max(good_ld_measurements_table_arima['ARIMA_OCCUPANCY'])
-        else:
-            min_speed_arima[i] = numpy.min(good_ld_measurements_table_arima['ARIMA_SPEED'])
-            med_speed_arima[i] = numpy.median(good_ld_measurements_table_arima['ARIMA_SPEED'])
-            max_speed_arima[i] = numpy.max(good_ld_measurements_table_arima['ARIMA_SPEED'])
+        if data_source != 'LD.Flow.BT.Speed':
+            min_flow_arima[i] = numpy.min(good_ld_measurements_table_arima['ARIMA_FLOW'])
+            med_flow_arima[i] = numpy.median(good_ld_measurements_table_arima['ARIMA_FLOW'])
+            max_flow_arima[i] = numpy.max(good_ld_measurements_table_arima['ARIMA_FLOW'])
+            if data_source == 'LD.Flow.LD.Occupancy':
+                min_occupancy_arima[i] = numpy.min(good_ld_measurements_table_arima['ARIMA_OCCUPANCY'])
+                med_occupancy_arima[i] = numpy.median(good_ld_measurements_table_arima['ARIMA_OCCUPANCY'])
+                max_occupancy_arima[i] = numpy.max(good_ld_measurements_table_arima['ARIMA_OCCUPANCY'])
+            elif data_source == 'LD.Flow.LD.Speed':
+                min_speed_arima[i] = numpy.min(good_ld_measurements_table_arima['ARIMA_SPEED'])
+                med_speed_arima[i] = numpy.median(good_ld_measurements_table_arima['ARIMA_SPEED'])
+                max_speed_arima[i] = numpy.max(good_ld_measurements_table_arima['ARIMA_SPEED'])
+            else:
+                min_occupancy_arima[i] = numpy.min(good_ld_measurements_table_arima['ARIMA_OCCUPANCY'])
+                med_occupancy_arima[i] = numpy.median(good_ld_measurements_table_arima['ARIMA_OCCUPANCY'])
+                max_occupancy_arima[i] = numpy.max(good_ld_measurements_table_arima['ARIMA_OCCUPANCY'])
+                min_speed_arima[i] = numpy.min(good_ld_measurements_table_arima['ARIMA_SPEED'])
+                med_speed_arima[i] = numpy.median(good_ld_measurements_table_arima['ARIMA_SPEED'])
+                max_speed_arima[i] = numpy.max(good_ld_measurements_table_arima['ARIMA_SPEED'])
 
         # Write out the filtered loop detector measurements (ARIMA) data table for the current loop detector
         curr_output_dir = os.path.join(output_dir_ld_measurements_arima, data_source, country_name, city_name, ld_locations_table['DETECTOR_ID'][i])
@@ -435,9 +507,15 @@ for file in file_list:
     min_length = '{:25.3f}'.format(numpy.min(ld_locations_table['LENGTH'])).strip()
     med_length = '{:25.3f}'.format(numpy.median(ld_locations_table['LENGTH'])).strip()
     max_length = '{:25.3f}'.format(numpy.max(ld_locations_table['LENGTH'])).strip()
-    min_position = '{:25.4f}'.format(numpy.min(ld_locations_table['POSITION'])).strip()
-    med_position = '{:25.4f}'.format(numpy.median(ld_locations_table['POSITION'])).strip()
-    max_position = '{:25.4f}'.format(numpy.max(ld_locations_table['POSITION'])).strip()
+    selection = ld_locations_table['POSITION'] >= 0.0
+    if numpy.count_nonzero(selection) > 0:
+        min_position = '{:25.4f}'.format(numpy.min(ld_locations_table['POSITION'][selection])).strip()
+        med_position = '{:25.4f}'.format(numpy.median(ld_locations_table['POSITION'][selection])).strip()
+        max_position = '{:25.4f}'.format(numpy.max(ld_locations_table['POSITION'][selection])).strip()
+    else:
+        min_position = '-1.0000'
+        med_position = '-1.0000'
+        max_position = '-1.0000'
     n_living_street = str(numpy.count_nonzero(ld_locations_table['ROAD_CLASS'] == 'living_street'))
     n_motorway = str(numpy.count_nonzero(ld_locations_table['ROAD_CLASS'] == 'motorway'))
     n_motorway_link = str(numpy.count_nonzero(ld_locations_table['ROAD_CLASS'] == 'motorway_link'))
