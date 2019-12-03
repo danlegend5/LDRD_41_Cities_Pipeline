@@ -15,8 +15,3 @@ original_measurements_zurich_file2 = '/data/dmb20/Loop.Detector.Original.Data.41
 
 # Output directory for results
 output_dir = '/data/dmb20/Loop.Detector.Reformatted.Data.41.Cities/Results'
-
-# Mean radius (km) of the Earth to be used for the approximate conversion of sets of longitude and latitude
-# coordinates within a city to sets of x and y Cartesian coordinates (taken from the International Union of
-# Geodesy and Geophysics - IUGG)
-radius_earth = 6371.0
