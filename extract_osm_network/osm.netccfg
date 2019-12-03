@@ -26,15 +26,15 @@
         <geometry.remove value="true"/>
         <roundabouts.guess value="true"/>
         <edges.join value="true"/>
-	<geometry.max-segment-length value="200"/>
-	<geometry.min-radius.fix value="true"/>
+        <geometry.max-segment-length value="200"/>
+        <geometry.min-radius.fix value="true"/>
     </processing>
 
-    <tls_building>	
-	<tls.discard-loaded value="false"/>
+    <tls_building>
+        <tls.discard-loaded value="false"/>
         <tls.discard-simple value="false"/>
         <tls.join value="true"/>
-	<tls.guess value="false"/>
+        <tls.guess value="false"/>
         <tls.uncontrolled-within value="true"/>
         <tls.guess-signals value="true"/>
         <tls.yellow.time value="1"/>
@@ -52,21 +52,21 @@
 
     <junctions>
         <no-internal-links value="true"/>
-	<no-turnarounds.tls value="true"/>
-	<no-turnarounds.geometry value="true"/>
+        <no-turnarounds.tls value="true"/>
+        <no-turnarounds.geometry value="true"/>
         <junctions.join value="true"/>
-	<junctions.join-dist value="20"/>
+        <junctions.join-dist value="20"/>
         <junctions.join-turns value="true"/>
-	<rectangular-lane-cut value="false"/>
+        <rectangular-lane-cut value="false"/>
     </junctions>
 
     <format>
-	<osm.all-attributes value="true"/>
+        <osm.all-attributes value="true"/>
     </format>
-    
+
     <report>
         <verbose value="true"/>
-	<xml-validation value="never"/>
+        <xml-validation value="never"/>
     </report>
 
 </configuration>
