@@ -154,14 +154,20 @@ for file in file_list:
             error_im[i, curr_time_bin_sub] = 0
             if data_source != 'LD.Flow.LD.Occupancy': speed_im[i, curr_time_bin_sub] = ld_measurements_table_raw['SPEED'][j]
 
+    # Write out the two-dimensional arrays of loop detector measurements (raw) for the current city
+    flow_file = os.path.join(output_dir_ld_data, 'measurements.raw.' + data_source + '.' + country_name + '.' + city_name + '.flow.fits')
+    astropy.io.fits.writeto(flow_file, flow_im, checksum = True)
+    if data_source != 'LD.Flow.LD.Speed':
+        occ_file = os.path.join(output_dir_ld_data, 'measurements.raw.' + data_source + '.' + country_name + '.' + city_name + '.occupancy.fits')
+        astropy.io.fits.writeto(occ_file, occ_im, checksum = True)
+    error_file = os.path.join(output_dir_ld_data, 'measurements.raw.' + data_source + '.' + country_name + '.' + city_name + '.error_flag.fits')
+    astropy.io.fits.writeto(error_file, error_im, checksum = True)
+    if data_source != 'LD.Flow.LD.Occupancy':
+        speed_file = os.path.join(output_dir_ld_data, 'measurements.raw.' + data_source + '.' + country_name + '.' + city_name + '.speed.fits')
+        astropy.io.fits.writeto(speed_file, speed_im, checksum = True)
+
 
 #### ABOVE FULLY READ AND TESTED
-
-
-#    astropy.io.fits.writeto('flow.fits', flow_im, checksum = True)
-#    astropy.io.fits.writeto('occ.fits', occ_im, checksum = True)
-#    astropy.io.fits.writeto('error.fits', error_im, checksum = True)
-#    astropy.io.fits.writeto('speed.fits', speed_im, checksum = True)
 
 
 # Finish
