@@ -32,7 +32,8 @@ Method:
   parameters in this file:
 
   osm-files = The name of the ".osm" file that you downloaded.
-  plain-output-prefix = The desired prefix for the output files.
+  output-file = The name of the main output network xml file (<CITY>.osm.net.xml).
+  plain-output-prefix = The desired prefix for the other output files (<PREFIX>).
 
   The only other parameter that you may want to modify is:
 
@@ -54,9 +55,21 @@ Method:
   The run will generate the following output files (<PREFIX> is the prefix for the output files set in the
   previous step):
 
-  <PREFIX>.con.xml
-  <PREFIX>.edg.xml
-  <PREFIX>.nod.xml
-  <PREFIX>.tll.xml
-  <PREFIX>.typ.xml
-  osm.net.xml
+  <PREFIX>.con.xml = Connection file
+  <PREFIX>.edg.xml = Edge file
+  <PREFIX>.nod.xml = Node file
+  <PREFIX>.tll.xml = Traffic light file
+  <PREFIX>.typ.xml = Type file
+  <CITY>.osm.net.xml = Main output network xml file that can be read into SUMO (and it uses the other output files)
+
+
+
+
+sumo-gui
+
+/usr/share/sumo/tools/xml/xml2csv.py <EDGE FILE> or <NODE FILE>
+
+Make sure file names correct in R script, then:
+Rscript lukas.R
+
+
