@@ -32,7 +32,7 @@ Method:
   parameters in this file:
 
   osm-files = The name of the ".osm" file that you downloaded.
-  output-file = The name of the main output network xml file (<CITY>.osm.net.xml).
+  output-file = The desired name of the main output network xml file (<CITY>.osm.net.xml).
   plain-output-prefix = The desired prefix for the other output files (<PREFIX>).
 
   The only other parameter that you may want to modify is:
@@ -65,11 +65,11 @@ Method:
 
 
 
-sumo-gui
+ sumo-gui
 
-/usr/share/sumo/tools/xml/xml2csv.py <EDGE FILE> or <NODE FILE>
+ /usr/share/sumo/tools/xml/xml2csv.py <EDGE FILE> or <NODE FILE>
 
-Make sure file names correct in R script, then:
-Rscript lukas.R
+ Make sure file names correct in R script, then:
+ Rscript lukas.R
 
 
