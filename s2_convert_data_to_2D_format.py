@@ -48,8 +48,12 @@ for line in sslines:
     bits = line.split()
     if bits[0] == '#': continue
     ss_city.append(bits[1])
-    ss_first_time_stamp.append(bits[5])
-    ss_last_time_stamp.append(bits[6])
+    tmp_list = [bits[5], bits[21]]
+    tmp_list.sort()
+    ss_first_time_stamp.append(tmp_list[0])
+    tmp_list = [bits[6], bits[22]]
+    tmp_list.sort()
+    ss_last_time_stamp.append(tmp_list[1])
     ss_interval.append(bits[9])
 ss_city = numpy.array(ss_city)
 ss_first_time_stamp = numpy.array(ss_first_time_stamp)
