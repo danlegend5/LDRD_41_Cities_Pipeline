@@ -243,6 +243,12 @@ fieldnames = ['day', 'interval', 'flow', 'occ', 'error', 'speed']
 with open(config.original_measurements_raw_file, mode = 'r') as csv_file:
     csv_contents = csv.DictReader(csv_file)
     for row in csv_contents:
+        if row['day'] == '': continue                                                # Notes: - Skip these problematic entries (introduced with the latest version of the data)
+        if row['interval'] == '': continue
+        if row['flow'] == '': continue
+        if row['occ'] == '': continue
+        if row['error'] == '': continue
+        if row['speed'] == '': continue
         city_name = row['city']                                                      # Notes: - Name of the city that hosts the loop detector the measurement was taken with.
                                                                                      #        - 41 cities with the same names as above.
         if city_name == 'innsbruck': continue
@@ -464,6 +470,15 @@ fieldnames = ['day', 'interval', 'flow', 'occ', 'error', 'speed', 'arima.flow', 
 with open(config.original_measurements_arima_file, mode = 'r') as csv_file:
     csv_contents = csv.DictReader(csv_file)
     for row in csv_contents:
+        if row['day'] == '': continue                                                # Notes: - Skip these problematic entries (introduced with the latest version of the data)
+        if row['interval'] == '': continue
+        if row['flow'] == '': continue
+        if row['occ'] == '': continue
+        if row['error'] == '': continue
+        if row['speed'] == '': continue
+        if row['arima.flow'] == '': continue
+        if row['arima.occ'] == '': continue
+        if row['arima.speed'] == '': continue
         city_name = row['city']                                                      # Notes: - Name of the city that hosts the loop detector the measurement was taken with.
                                                                                      #        - 41 cities with the same names as above.
         if city_name == 'innsbruck': continue

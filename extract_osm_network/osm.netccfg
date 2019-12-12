@@ -46,7 +46,7 @@
     </ramp_guessing>
 
     <edge_removal>
-        <keep-edges.by-type value="highway.living_street,highway.motorway,highway.motorway_link,highway.primary,highway.primary_link,highway.residential,highway.secondary,highway.secondary_link,highway.service,highway.tertiary,highway.tertiary_link,highway.trunk,highway.trunk_link,highway.unclassified"/>
+        <keep-edges.by-type value="highway.living_street,highway.motorway,highway.motorway_link,highway.primary,highway.primary_link,highway.residential,highway.secondary,highway.secondary_link,highway.tertiary,highway.tertiary_link,highway.trunk,highway.trunk_link,highway.unclassified"/>
         <remove-edges.isolated value="true"/>
     </edge_removal>
 

@@ -24,10 +24,11 @@ __author__ = 'Dan Bramich'
 #                                                     loop detectors and bluetooth detectors are not
 #                                                     necessarily at the same location.
 #
-#      The cities in group (i) are: augsburg, basel, bern, bordeaux, bremen, cagliari, darmstadt, duisburg,
-#                                   frankfurt, graz, hamburg, kassel, london, losangeles, luzern, madrid,
-#                                   marseille, munich, paris, santander, speyer, strasbourg, stuttgart,
-#                                   taipeh, tokyo, toronto, toulouse, vilnius, wolfsburg, zurich
+#      The cities in group (i) are: augsburg, basel, bern, bordeaux, bremen, cagliari, darmstadt, duisburg
+#                                   (the loop detector measurements for this city are not available due to
+#                                   an NDA), frankfurt, graz, hamburg, kassel, london, losangeles, luzern,
+#                                   madrid, marseille, munich, paris, santander, speyer, strasbourg,
+#                                   stuttgart, taipeh, tokyo, toronto, toulouse, vilnius, wolfsburg, zurich
 #
 #      The cities in group (ii) are: birmingham, bolton, innsbruck, manchester, rotterdam, torino
 #
