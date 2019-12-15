@@ -130,7 +130,7 @@ for file in file_list:
     ld_locations_table['POSITION'][selection] = numpy.clip(ld_locations_table['POSITION'][selection]/ld_locations_table['LENGTH'][selection], None, 1.0)
 
     # Filter out the loop detectors that are on roads with the following classifications: 'cycleway', 'footway',
-    # 'other', 'path', 'pedestrian' (216 loop detectors rejected in total)
+    # 'other', 'path', 'pedestrian'
     nld_locations_old = nld_locations
     selection = numpy.logical_and(ld_locations_table['ROAD_CLASS'] != 'cycleway', ld_locations_table['ROAD_CLASS'] != 'footway')
     selection = numpy.logical_and(selection, ld_locations_table['ROAD_CLASS'] != 'other')
@@ -140,14 +140,13 @@ for file in file_list:
     nld_locations = len(ld_locations_table)
     print('No. of loop detectors rejected with "ROAD_CLASS" equal to "cycleway", "footway", "other", "path", or "pedestrian":                   ' + str(nld_locations_old - nld_locations))
 
-    # Filter out the loop detectors with bad "NLANES" values (4 loop detectors rejected in total)
+    # Filter out the loop detectors with bad "NLANES" values
     nld_locations_old = nld_locations
     ld_locations_table = ld_locations_table[ld_locations_table['NLANES'] > 0]
     nld_locations = len(ld_locations_table)
     print('No. of loop detectors rejected with bad "NLANES" values:                                                                             ' + str(nld_locations_old - nld_locations))
 
-    # Filter out the ambiguous duplicate loop detector entries (i.e. for city "toulouse" and "DETECTOR_ID = 262";
-    # 2 loop detectors rejected in total)
+    # Filter out the ambiguous duplicate loop detector entries (i.e. for city "toulouse" and "DETECTOR_ID = 262")
     nld_locations_old = nld_locations
     if city_name == 'toulouse':
         ld_locations_table = ld_locations_table[ld_locations_table['DETECTOR_ID'] != '262']
@@ -202,7 +201,7 @@ for file in file_list:
         ld_measurements_file_raw = os.path.join(config.output_dir, 's0.Loop.Detector.Measurements.Raw', country_name, city_name, ld_locations_table['DETECTOR_ID'][i], ld_measurements_file_raw)
 
         # If the corresponding loop detector measurements data file (raw) does not exist, then reject the current
-        # loop detector, and move on to the next loop detector (127 loop detectors rejected in total)
+        # loop detector, and move on to the next loop detector
         if not os.path.exists(ld_measurements_file_raw):
             selection[i] = False
             nrejected_reason1 += 1
@@ -213,7 +212,6 @@ for file in file_list:
         nld_measurements_raw = len(ld_measurements_table_raw)
 
         # Filter out the loop detector measurements (raw) with bad "DATE", or bad "INTERVAL_START", values
-        # (2 loop detectors rejected in total)
         nld_measurements_raw_old = nld_measurements_raw
         tmp_selection = numpy.logical_and(ld_measurements_table_raw['DATE'] != '0000-00-00', ld_measurements_table_raw['INTERVAL_START'] != -1)
         nld_measurements_raw = numpy.count_nonzero(tmp_selection)
@@ -263,7 +261,6 @@ for file in file_list:
 
         # If all of the loop detector measurements (raw) for the current loop detector are flagged with
         # "ERROR_FLAG = 1", then reject the current loop detector, and move on to the next loop detector
-        # (3,674 loop detectors rejected in total)
         if data_source != 'LD.Flow.BT.Speed':
             if numpy.count_nonzero(ld_measurements_table_raw['ERROR_FLAG']) == nld_measurements_raw:
                 selection[i] = False
