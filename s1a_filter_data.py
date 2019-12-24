@@ -45,20 +45,20 @@ from astropy.table import Table
 from LDRD_41_Cities_Pipeline.config import config
 
 # Create the output directory for the loop detector locations data tables
-output_dir_ld_locations = os.path.join(config.output_dir, 's1.Loop.Detector.Locations')
+output_dir_ld_locations = os.path.join(config.output_dir, 's1a.Loop.Detector.Locations')
 print('')
 print('Creating the output directory for the loop detector locations data tables: ' + output_dir_ld_locations)
 if os.path.exists(output_dir_ld_locations): shutil.rmtree(output_dir_ld_locations)
 os.makedirs(output_dir_ld_locations)
 
 # Create the output directory for the loop detector measurements data tables (raw)
-output_dir_ld_measurements_raw = os.path.join(config.output_dir, 's1.Loop.Detector.Measurements.Raw')
+output_dir_ld_measurements_raw = os.path.join(config.output_dir, 's1a.Loop.Detector.Measurements.Raw')
 print('Creating the output directory for the loop detector measurements data tables (raw): ' + output_dir_ld_measurements_raw)
 if os.path.exists(output_dir_ld_measurements_raw): shutil.rmtree(output_dir_ld_measurements_raw)
 os.makedirs(output_dir_ld_measurements_raw)
 
 # Create the output directory for the loop detector measurements data tables (ARIMA)
-output_dir_ld_measurements_arima = os.path.join(config.output_dir, 's1.Loop.Detector.Measurements.ARIMA')
+output_dir_ld_measurements_arima = os.path.join(config.output_dir, 's1a.Loop.Detector.Measurements.ARIMA')
 print('Creating the output directory for the loop detector measurements data tables (ARIMA): ' + output_dir_ld_measurements_arima)
 if os.path.exists(output_dir_ld_measurements_arima): shutil.rmtree(output_dir_ld_measurements_arima)
 os.makedirs(output_dir_ld_measurements_arima)

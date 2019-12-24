@@ -2,7 +2,7 @@
 
 __author__ = 'Dan Bramich'
 
-# This script converts the filtered loop detector locations and measurements data created by stage 1 into
+# This script converts the filtered loop detector locations and measurements data created by stage 1a into
 # an efficient two-dimensional data format for subsequent analyses. Note that the cities with data from a
 # combination of loop detectors and bluetooth detectors are not processed by this script, i.e. 'groningen',
 # 'melbourne', and 'utrecht'.
@@ -20,19 +20,19 @@ from LDRD_41_Cities_Pipeline.config import config
 from LDRD_41_Cities_Pipeline.lib import general_functions
 
 # Create the output directory for the loop detector data
-output_dir_ld_data = os.path.join(config.output_dir, 's2.Loop.Detector.Data')
+output_dir_ld_data = os.path.join(config.output_dir, 's2a.Loop.Detector.Data')
 print('')
 print('Creating the output directory for the loop detector data: ' + output_dir_ld_data)
 if os.path.exists(output_dir_ld_data): shutil.rmtree(output_dir_ld_data)
 os.makedirs(output_dir_ld_data)
 
 # Copy across the loop detector locations data files and the summary statistics text files that have already
-# been produced in stage 1
-print('Copying across the loop detector locations data files and the summary statistics text files from stage 1...')
-file_list = glob.glob(os.path.join(config.output_dir, 's1.Loop.Detector.Locations', 'detectors.LD.Flow.LD.*.fits'))
+# been produced in stage 1a
+print('Copying across the loop detector locations data files and the summary statistics text files from stage 1a...')
+file_list = glob.glob(os.path.join(config.output_dir, 's1a.Loop.Detector.Locations', 'detectors.LD.Flow.LD.*.fits'))
 for file in file_list: shutil.copy(file, output_dir_ld_data)
-shutil.copy(os.path.join(config.output_dir, 's1.Loop.Detector.Locations', 'summary.statistics.of.detectors.per.city.txt'), output_dir_ld_data)
-shutil.copy(os.path.join(config.output_dir, 's1.Loop.Detector.Locations', 'summary.statistics.of.measurements.per.city.detector.txt'), output_dir_ld_data)
+shutil.copy(os.path.join(config.output_dir, 's1a.Loop.Detector.Locations', 'summary.statistics.of.detectors.per.city.txt'), output_dir_ld_data)
+shutil.copy(os.path.join(config.output_dir, 's1a.Loop.Detector.Locations', 'summary.statistics.of.measurements.per.city.detector.txt'), output_dir_ld_data)
 
 # Read in the summary statistics text file for the loop detector measurements
 summary_stats_of_measurements_per_city_detector_file = os.path.join(output_dir_ld_data, 'summary.statistics.of.measurements.per.city.detector.txt')
@@ -134,7 +134,7 @@ for file in file_list:
         curr_detector_id = ld_locations_table['DETECTOR_ID'][i]
         print('Reading in the loop detector measurements data (raw and ARIMA) and incorporating them into the grid for the detector: ' + curr_detector_id)
         ld_measurements_file_raw = 'measurements.raw.' + data_source + '.' + country_name + '.' + city_name + '.' + curr_detector_id + '.fits'
-        ld_measurements_file_raw = os.path.join(config.output_dir, 's1.Loop.Detector.Measurements.Raw', data_source, country_name, city_name, curr_detector_id, ld_measurements_file_raw)
+        ld_measurements_file_raw = os.path.join(config.output_dir, 's1a.Loop.Detector.Measurements.Raw', data_source, country_name, city_name, curr_detector_id, ld_measurements_file_raw)
 
         # Read in the corresponding loop detector measurements data file (raw)
         ld_measurements_table_raw = Table.read(ld_measurements_file_raw, format = 'fits')
@@ -175,7 +175,7 @@ for file in file_list:
         # Determine the full directory path and filename of the corresponding loop detector measurements
         # data file (ARIMA)
         ld_measurements_file_arima = 'measurements.ARIMA.' + data_source + '.' + country_name + '.' + city_name + '.' + curr_detector_id + '.fits'
-        ld_measurements_file_arima = os.path.join(config.output_dir, 's1.Loop.Detector.Measurements.ARIMA', data_source, country_name, city_name, curr_detector_id, ld_measurements_file_arima)
+        ld_measurements_file_arima = os.path.join(config.output_dir, 's1a.Loop.Detector.Measurements.ARIMA', data_source, country_name, city_name, curr_detector_id, ld_measurements_file_arima)
 
         # If the corresponding loop detector measurements data file (ARIMA) does not exist, then move on to
         # the next loop detector
