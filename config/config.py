@@ -15,3 +15,10 @@ original_measurements_zurich_file2 = '/data/dmb20/Loop.Detector.Original.Data.41
 
 # Output directory for results
 output_dir = '/data/dmb20/Loop.Detector.Reformatted.Data.41.Cities/Results'
+
+
+##############################################
+# Pipeline stage 1b parameters
+
+# Minimum number of good measurements required for each loop detector
+min_ngood_ld_measurements = 900
