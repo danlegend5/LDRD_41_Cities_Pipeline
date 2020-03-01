@@ -7,8 +7,8 @@ __author__ = 'Dan Bramich'
 # (and detector) while also standardising the entries. Note that no filtering of the data is performed
 # since the purpose of this script is simply to better organise and standardise the data before the data
 # processing and analysis begins. The data come from the publication "Understanding traffic capacity of
-# urban networks" by Loder et al. (2019), except for the extra one year of data on Zurich covering 2017
-# to 2018.
+# urban networks" by Loder et al. (2019), except for the extra one year of data on Zurich covering
+# 01/07/2017 to 30/06/2018 inclusive.
 
 # Imports
 import csv
@@ -537,39 +537,11 @@ with open(config.original_measurements_innsbruck_file, mode = 'r') as csv_file:
                 writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
                 writer.writerow(row)
 
-# Read in the loop detector measurements data files for Zurich, and write out the entries to data files
+# Read in the loop detector measurements data file for Zurich, and write out the entries to data files
 # organised by city and detector ID
 print('Reading in and splitting the loop detector measurements data file (ARIMA): ' + config.original_measurements_zurich_file1)
 country_name = general_functions.get_country_name('zurich')
 with open(config.original_measurements_zurich_file1, mode = 'r') as csv_file:
-    csv_contents = csv.DictReader(csv_file)
-    for row in csv_contents:
-        detector_id = row['detid'].replace(' ', '_')                                 # Notes: - The ID of the loop detector the measurement was taken with.
-        detector_id = detector_id.replace('.', '_')                                  #        - Spaces replaced with underscores.
-        detector_id = detector_id.replace('/', '_')                                  #        - Characters '.', '/', '[', ']', '(' and ')' replaced with underscores.
-        detector_id = detector_id.replace('[', '_')                                  #        - Underscores at the beginning and end of the ID string are removed.
-        detector_id = detector_id.replace(']', '_')                                  #        - The only characters that are present in the loop detector ID entries are:
-        detector_id = detector_id.replace('(', '_')                                  #          '_', '-', '+', '0', ..., '9', 'a', ..., 'z', 'A', ..., 'Z'
-        detector_id = detector_id.replace(')', '_')
-        if detector_id[0] == '_': detector_id = detector_id[1:]
-        if detector_id[-1] == '_': detector_id = detector_id[0:(len(detector_id) - 1)]
-        row['day'] = row['day'][6:10] + '-' + row['day'][3:5] + '-' + row['day'][0:2]
-        row['speed'] = 'NA'
-        row['arima.speed'] = 'NA'
-        curr_output_dir = os.path.join(output_dir_ld_measurements_arima, country_name, 'zurich', detector_id)
-        curr_output_file = os.path.join(curr_output_dir, 'measurements.ARIMA.' + country_name + '.zurich.' + detector_id + '.csv')
-        if not os.path.exists(curr_output_file):
-            os.makedirs(curr_output_dir)
-            with open(curr_output_file, mode = 'w') as curr_csv_file:
-                writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
-                writer.writeheader()
-                writer.writerow(row)
-        else:
-            with open(curr_output_file, mode = 'a') as curr_csv_file:
-                writer = csv.DictWriter(curr_csv_file, fieldnames = fieldnames, extrasaction = 'ignore')
-                writer.writerow(row)
-print('Reading in and splitting the loop detector measurements data file (ARIMA): ' + config.original_measurements_zurich_file2)
-with open(config.original_measurements_zurich_file2, mode = 'r') as csv_file:
     csv_contents = csv.DictReader(csv_file)
     for row in csv_contents:
         detector_id = row['detid'].replace(' ', '_')                                 # Notes: - The ID of the loop detector the measurement was taken with.
