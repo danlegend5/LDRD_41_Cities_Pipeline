@@ -176,6 +176,12 @@ for file in file_list:
     nld_locations = len(ld_locations_table)
     print('No. of loop detectors rejected with bad "NLANES" values:                                                                             ' + str(nld_locations_old - nld_locations))
 
+    # Filter out the loop detectors with "NLANES" values that are greater than 1 (3,039 loop detectors rejected)
+    nld_locations_old = nld_locations
+    ld_locations_table = ld_locations_table[ld_locations_table['NLANES'] == 1]
+    nld_locations = len(ld_locations_table)
+    print('No. of loop detectors rejected with "NLANES" values that are greater than 1:                                                         ' + str(nld_locations_old - nld_locations))
+
     # Filter out the ambiguous duplicate loop detector entries (i.e. for city "toulouse" and "DETECTOR_ID = 262";
     # 2 loop detectors rejected)
     nld_locations_old = nld_locations
@@ -233,7 +239,7 @@ for file in file_list:
         ld_measurements_file_raw = os.path.join(config.output_dir, 's0.Loop.Detector.Measurements.Raw', country_name, city_name, ld_locations_table['DETECTOR_ID'][i], ld_measurements_file_raw)
 
         # If the corresponding loop detector measurements data file (raw) does not exist, then reject the current
-        # loop detector, and move on to the next loop detector (129 loop detectors rejected)
+        # loop detector, and move on to the next loop detector (138 loop detectors rejected)
         if not os.path.exists(ld_measurements_file_raw):
             selection[i] = False
             nrejected_reason1 += 1
@@ -244,7 +250,7 @@ for file in file_list:
         nld_measurements_raw = len(ld_measurements_table_raw)
 
         # Filter out the loop detector measurements (raw) with bad "DATE", or bad "INTERVAL_START", values (no
-        # loop detectors rejected; 2,409 loop detector measurements rejected)
+        # loop detectors rejected; 924 loop detector measurements rejected)
         nld_measurements_raw_old = nld_measurements_raw
         tmp_selection = numpy.logical_and(ld_measurements_table_raw['DATE'] != '0000-00-00', ld_measurements_table_raw['INTERVAL_START'] != -1)
         nld_measurements_raw = numpy.count_nonzero(tmp_selection)
@@ -274,14 +280,14 @@ for file in file_list:
 
         # If all of the loop detector measurements (raw) for the current loop detector are flagged with
         # "ERROR_FLAG = 1", then reject the current loop detector, and move on to the next loop detector
-        # (2,990 loop detectors rejected)
+        # (2,775 loop detectors rejected)
         if numpy.count_nonzero(ld_measurements_table_raw['ERROR_FLAG']) == nld_measurements_raw:
             selection[i] = False
             nrejected_reason3 += 1
             continue
 
         # If the number of good loop detector measurements (raw) for the current loop detector is less than the
-        # minimum required, then reject the current loop detector, and move on to the next loop detector (669
+        # minimum required, then reject the current loop detector, and move on to the next loop detector (605
         # loop detectors rejected)
         good_ld_measurements_table_raw = ld_measurements_table_raw[ld_measurements_table_raw['ERROR_FLAG'] == 0]
         ngood = len(good_ld_measurements_table_raw)
