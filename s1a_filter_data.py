@@ -146,6 +146,12 @@ for file in file_list:
     nld_locations = len(ld_locations_table)
     print('No. of loop detectors rejected with bad "NLANES" values:                                                                             ' + str(nld_locations_old - nld_locations))
 
+    # Filter out the loop detectors with "NLANES" values that are greater than 1 (3,715 loop detectors rejected)
+    nld_locations_old = nld_locations
+    ld_locations_table = ld_locations_table[ld_locations_table['NLANES'] == 1]
+    nld_locations = len(ld_locations_table)
+    print('No. of loop detectors rejected with "NLANES" values that are greater than 1:                                                         ' + str(nld_locations_old - nld_locations))
+
     # Filter out the ambiguous duplicate loop detector entries (i.e. for city "toulouse" and "DETECTOR_ID = 262";
     # 2 loop detectors rejected)
     nld_locations_old = nld_locations
@@ -202,7 +208,7 @@ for file in file_list:
         ld_measurements_file_raw = os.path.join(config.output_dir, 's0.Loop.Detector.Measurements.Raw', country_name, city_name, ld_locations_table['DETECTOR_ID'][i], ld_measurements_file_raw)
 
         # If the corresponding loop detector measurements data file (raw) does not exist, then reject the current
-        # loop detector, and move on to the next loop detector (319 loop detectors rejected)
+        # loop detector, and move on to the next loop detector (328 loop detectors rejected)
         if not os.path.exists(ld_measurements_file_raw):
             selection[i] = False
             nrejected_reason1 += 1
@@ -263,7 +269,7 @@ for file in file_list:
 
         # If all of the loop detector measurements (raw) for the current loop detector are flagged with
         # "ERROR_FLAG = 1", then reject the current loop detector, and move on to the next loop detector
-        # (3,647 loop detectors rejected)
+        # (3,320 loop detectors rejected)
         if data_source != 'LD.Flow.BT.Speed':
             if numpy.count_nonzero(ld_measurements_table_raw['ERROR_FLAG']) == nld_measurements_raw:
                 selection[i] = False
