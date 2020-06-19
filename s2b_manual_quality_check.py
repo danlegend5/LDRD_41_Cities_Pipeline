@@ -4,7 +4,8 @@ __author__ = 'Dan Bramich'
 
 # This script allows the user to perform a visual quality check on the flow-occupancy fundamental diagram for
 # each loop detector and to reject any loop detectors for which the measurement data have significant/obvious
-# problems.
+# problems. This script processes the filtered loop detector locations and measurements data created by stage
+# 1b.
 
 # Imports
 import glob
