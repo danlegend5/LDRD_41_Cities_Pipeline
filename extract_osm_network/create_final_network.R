@@ -18,8 +18,8 @@ options(stringsAsFactors=F)
 # Read in the edge list and the node list
 country_name = "australia"
 city_name = "melbourne"
-edgelist <- fread(paste0("/data/dmb20/Loop.Detector.Reformatted.Data.41.Cities/Results/Underlying.Network/", country_name, "/", city_name, "/", city_name, ".edg.csv"), fill=T, integer64="character")[edge_id!=""]
-nodelist <- fread(paste0("/data/dmb20/Loop.Detector.Reformatted.Data.41.Cities/Results/Underlying.Network/", country_name, "/", city_name, "/", city_name, ".nod.csv"), integer64="character")
+edgelist <- fread(paste0("/data/dmb20/Traffic.Data/Loop.Detector.Reformatted.Data.41.Cities/Results/Underlying.Network/", country_name, "/", city_name, "/", city_name, ".edg.csv"), fill=T, integer64="character")[edge_id!=""]
+nodelist <- fread(paste0("/data/dmb20/Traffic.Data/Loop.Detector.Reformatted.Data.41.Cities/Results/Underlying.Network/", country_name, "/", city_name, "/", city_name, ".nod.csv"), integer64="character")
 
 # Retain certain columns
 edgelist <- edgelist[edge_to!="",.(edge_from,edge_to,edge_type,edge_id)]
@@ -69,7 +69,7 @@ edges <- edges[(edge_from %in% subs$V2) & (edge_to %in% subs$V2)]
 edges_valid <- data.table(edges$edge_id)
 
 # Write out the edges we want to keep
-write.table(edges_valid, file = paste0("/data/dmb20/Loop.Detector.Reformatted.Data.41.Cities/Results/Underlying.Network/", country_name, "/", city_name, "/", "edges_valid_strongcon.txt"), row.names = FALSE, col.names = FALSE, quote = FALSE)
+write.table(edges_valid, file = paste0("/data/dmb20/Traffic.Data/Loop.Detector.Reformatted.Data.41.Cities/Results/Underlying.Network/", country_name, "/", city_name, "/", "edges_valid_strongcon.txt"), row.names = FALSE, col.names = FALSE, quote = FALSE)
 
 
 #####################################################################################################
