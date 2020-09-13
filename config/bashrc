@@ -1,4 +1,4 @@
 # Pipeline environment settings
 
 # Setup python path
-export PYTHONPATH="/data/dmb20/Loop.Detector.Reformatted.Data.41.Cities:$PYTHONPATH"
+export PYTHONPATH="/data/dmb20/Traffic.Data/Loop.Detector.Reformatted.Data.41.Cities:$PYTHONPATH"
