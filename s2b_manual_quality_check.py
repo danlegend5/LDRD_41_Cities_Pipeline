@@ -2,10 +2,10 @@
 
 __author__ = 'Dan Bramich'
 
-# This script allows the user to perform a visual quality check on the flow-occupancy fundamental diagram for
-# each loop detector and to reject any loop detectors for which the measurement data have significant/obvious
-# problems. This script processes the filtered loop detector locations and measurements data created by stage
-# 1b.
+# This script allows the user to perform a visual quality check on the flow-occupancy empirical fundamental
+# diagram for each loop detector and to reject any loop detectors for which the measurement data have
+# significant/obvious problems. This script processes the filtered loop detector locations and measurements
+# data created by stage 1b.
 
 # Imports
 import glob
@@ -150,7 +150,7 @@ for file in file_list:
         ngood = len(good_ld_measurements_table_raw)
         print('No. of good measurements: ' + str(ngood))
 
-        # Plot the flow-occupancy fundamental diagram
+        # Plot the flow-occupancy empirical fundamental diagram
         print('Plotting the flow-occupancy FD...')
         fig = plt.figure(dpi = 150, figsize = (12, 8))
         plt.xlim = (0.0, 1.0)
