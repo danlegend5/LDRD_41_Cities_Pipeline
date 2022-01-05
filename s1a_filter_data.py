@@ -75,7 +75,7 @@ with open(summary_stats_of_detectors_per_city_file, mode = 'w') as ssfile:
                  'No. LD Roads Classed "motorway_link" : No. LD Roads Classed "primary" : No. LD Roads Classed "primary_link" : No. LD Roads Classed "residential" : ' + \
                  'No. LD Roads Classed "secondary" : No. LD Roads Classed "secondary_link" : No. LD Roads Classed "service" : No. LD Roads Classed "tertiary" : ' + \
                  'No. LD Roads Classed "tertiary_link" : No. LD Roads Classed "trunk" : No. LD Roads Classed "trunk_link" : No. LD Roads Classed "unclassified" : ' + \
-                 'Min. LD Road Speed Limit (km/h) : Med. LD Road Speed Limit (km/h) : Max. LD Road Speed Limit (km/h) : Min. No. Lanes Covered by LD : Max. No. Lanes Covered by LD : ' + \
+                 'Min. LD Road Speed Limit (km/h) : Med. LD Road Speed Limit (km/h) : Max. LD Road Speed Limit (km/h) : Min. No. Lanes Covered By LD : Max. No. Lanes Covered By LD : ' + \
                  'Min. Longitude (deg) Of LD Roads : Max. Longitude (deg) Of LD Roads : Min. Latitude (deg) Of LD Roads : Max. Latitude (deg) Of LD Roads\n')
 
 # Initialise the text file that will be used to contain the summary statistics of the loop detector
